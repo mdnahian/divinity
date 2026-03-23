@@ -11,7 +11,7 @@ import (
 
 var movementActions = []Action{
 	{
-		ID: "explore", Label: "Wander and explore the area", Category: "movement",
+		ID: "explore", Label: "Wander and explore the area (travel time varies)", Category: "movement",
 		Destination: func(n *npc.NPC, w *world.World) string {
 			cur := w.LocationByID(n.LocationID)
 			var locs []*world.Location

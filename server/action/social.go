@@ -15,7 +15,7 @@ var socialActions = []Action{
 	{
 		ID: "talk", Label: "Socialise with a nearby NPC", Category: "social",
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			return n.Needs.SocialNeed > 30 && len(w.NPCsAtLocation(n.LocationID, n.ID)) > 0
+			return n.Needs.SocialNeed > 10 && len(w.NPCsAtLocation(n.LocationID, n.ID)) > 0
 		},
 		Execute: func(n *npc.NPC, target *npc.NPC, w *world.World, mem memory.Store) string {
 			if target == nil {
@@ -53,7 +53,7 @@ var socialActions = []Action{
 				mem.Add(target.ID, rumor)
 			}
 
-			return fmt.Sprintf("Chatted with %s (social -20, relationship +%d).", target.Name, relBonus)
+			return fmt.Sprintf("Chatted with %s (social +20, relationship +%d).", target.Name, relBonus)
 		},
 	},
 	{

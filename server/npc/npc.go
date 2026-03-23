@@ -653,9 +653,17 @@ func (n *NPC) DecayNeeds(cfg *config.Config) {
 		return
 	}
 	d := cfg.Decay
-	n.Needs.Hunger = clampF(n.Needs.Hunger-d.Hunger, 0, 100)
-	n.Needs.Thirst = clampF(n.Needs.Thirst-d.Thirst, 0, 100)
-	n.Needs.Fatigue = clampF(n.Needs.Fatigue+d.Fatigue, 0, 100)
+	sleeping := n.PendingActionID == "sleep"
+	if sleeping {
+		// While sleeping: halve hunger/thirst drain, reduce fatigue instead of increasing it
+		n.Needs.Hunger = clampF(n.Needs.Hunger-d.Hunger*0.5, 0, 100)
+		n.Needs.Thirst = clampF(n.Needs.Thirst-d.Thirst*0.5, 0, 100)
+		n.Needs.Fatigue = clampF(n.Needs.Fatigue-0.5, 0, 100)
+	} else {
+		n.Needs.Hunger = clampF(n.Needs.Hunger-d.Hunger, 0, 100)
+		n.Needs.Thirst = clampF(n.Needs.Thirst-d.Thirst, 0, 100)
+		n.Needs.Fatigue = clampF(n.Needs.Fatigue+d.Fatigue, 0, 100)
+	}
 	n.Needs.SocialNeed = clampF(n.Needs.SocialNeed+d.SocialNeed, 0, 100)
 	n.Happiness = clamp(n.Happiness+int(d.Happiness), 0, 100)
 	n.Stress = clamp(n.Stress-int(-d.Stress), 0, 100)

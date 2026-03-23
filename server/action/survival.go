@@ -13,7 +13,7 @@ var survivalActions = []Action{
 	{
 		ID: "eat", Label: "Eat food from inventory", Category: "survival",
 		Conditions: func(n *npc.NPC, _ *world.World) bool {
-			if n.Needs.Hunger >= 60 {
+			if n.Needs.Hunger >= 90 {
 				return false
 			}
 			for _, it := range n.Inventory {
@@ -73,7 +73,7 @@ var survivalActions = []Action{
 		},
 	},
 	{
-		ID: "sleep", Label: "Sleep (at home: free; at inn: 3g+1/guest; rough: free but miserable)", Category: "survival", BaseGameMinutes: 360,
+		ID: "sleep", Label: "Sleep (at home: free; at inn: 3g+1/guest; rough: free but miserable)", Category: "survival", BaseGameMinutes: 240,
 		Destination: func(n *npc.NPC, w *world.World) string {
 			// Critical fatigue: rough-sleep wherever you are
 			if n.Needs.Fatigue >= 80 {

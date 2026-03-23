@@ -206,6 +206,9 @@ var employmentActions = []Action{
 			loc.OwnerID = n.ID
 			n.IsBusinessOwner = true
 			n.WorkplaceID = loc.ID
+			if n.HomeID == "" {
+				n.HomeID = loc.ID
+			}
 			if n.EmployerID != "" {
 				oldEmployer := w.FindNPCByID(n.EmployerID)
 				if oldEmployer != nil {

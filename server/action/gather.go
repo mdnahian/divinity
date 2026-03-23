@@ -374,42 +374,65 @@ var gatherActions = []Action{
 	{
 		ID: "gather_clay", Label: "Gather clay near water", Category: "gather", BaseGameMinutes: 30,
 		Destination: func(n *npc.NPC, w *world.World) string {
-			docks := w.LocationsByType("dock")
-			if len(docks) > 0 {
-				return docks[0].ID
+			// Check if current location has clay
+			cur := w.LocationByID(n.LocationID)
+			if cur != nil && cur.Resources != nil && cur.Resources["clay"] > 0 {
+				return n.LocationID
 			}
-			wells := w.LocationsByType("well")
-			if len(wells) > 0 {
-				return wells[0].ID
+			// Find nearest dock or well with clay
+			var candidates []*world.Location
+			for _, l := range w.LocationsByType("dock") {
+				if l.Resources != nil && l.Resources["clay"] > 0 {
+					candidates = append(candidates, l)
+				}
 			}
-			return ""
+			for _, l := range w.LocationsByType("well") {
+				if l.Resources != nil && l.Resources["clay"] > 0 {
+					candidates = append(candidates, l)
+				}
+			}
+			if len(candidates) == 0 {
+				return ""
+			}
+			if cur == nil {
+				return candidates[0].ID
+			}
+			cx, cy := float64(cur.X+cur.W/2), float64(cur.Y+cur.H/2)
+			var best *world.Location
+			bestDist := math.MaxFloat64
+			for _, l := range candidates {
+				d := math.Abs(float64(l.X+l.W/2)-cx) + math.Abs(float64(l.Y+l.H/2)-cy)
+				if d < bestDist {
+					bestDist = d
+					best = l
+				}
+			}
+			return best.ID
 		},
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			if n.Needs.Fatigue >= 70 {
 				return false
 			}
-			docks := w.LocationsByType("dock")
-			wells := w.LocationsByType("well")
-			var loc *world.Location
-			if len(docks) > 0 {
-				loc = docks[0]
-			} else if len(wells) > 0 {
-				loc = wells[0]
+			// Check current location
+			cur := w.LocationByID(n.LocationID)
+			if cur != nil && cur.Resources != nil && cur.Resources["clay"] > 0 {
+				return true
 			}
-			if loc == nil {
-				return false
+			// Check any dock or well with clay
+			for _, l := range w.LocationsByType("dock") {
+				if l.Resources != nil && l.Resources["clay"] > 0 {
+					return true
+				}
 			}
-			return loc.Resources == nil || loc.Resources["clay"] > 0
+			for _, l := range w.LocationsByType("well") {
+				if l.Resources != nil && l.Resources["clay"] > 0 {
+					return true
+				}
+			}
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			docks := w.LocationsByType("dock")
-			wells := w.LocationsByType("well")
-			var loc *world.Location
-			if len(docks) > 0 {
-				loc = docks[0]
-			} else if len(wells) > 0 {
-				loc = wells[0]
-			}
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
 			if loc != nil && loc.Resources != nil {
 				avail = loc.Resources["clay"]
