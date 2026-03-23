@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "bash build.sh",
+    "deploy": "npm run build && npx wrangler deploy"
   }
 }
