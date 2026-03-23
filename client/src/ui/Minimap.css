@@ -1,0 +1,33 @@
+/* ── Minimap (bottom-right, fixed) ── */
+
+.minimap-wrap {
+  position: fixed;
+  bottom: 70px;
+  right: 324px;
+  z-index: 1000001;
+  padding: 6px;
+}
+
+.minimap-canvas {
+  display: block;
+  width: 150px;
+  height: 150px;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  border: 2px solid var(--sdv-parchment-deep);
+  border-radius: 3px;
+}
+
+.minimap-label {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: var(--sdv-wood);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  pointer-events: none;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}

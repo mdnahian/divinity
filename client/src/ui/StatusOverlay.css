@@ -1,0 +1,36 @@
+.status-overlay {
+  position: fixed;
+  top: 10px;
+  right: 324px;
+  z-index: 1000001;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 6px 14px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+}
+
+.status-icon {
+  font-size: 12px;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.status-text {
+  font-family: var(--sdv-font-pixel);
+  font-size: 8px;
+  color: var(--sdv-text);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.status-divider {
+  width: 2px;
+  height: 18px;
+  background: var(--sdv-parchment-deep);
+  border-radius: 1px;
+}

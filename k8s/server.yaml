@@ -1,0 +1,92 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: divinity-config
+  namespace: divinity
+data:
+  OPENROUTER_URL: "https://openrouter.ai/api/v1/chat/completions"
+  OPENROUTER_MODEL: "qwen/qwen-2.5-7b-instruct"
+  LLM_MAX_TOKENS: "0"
+  LLM_TEMPERATURE: "0.8"
+  LLM_TIMEOUT_MS: "120000"
+  GOD_AGENT_ENABLED: "true"
+  GOD_AGENT_MODEL: "qwen/qwen3.5-flash-02-23"
+  GOD_AGENT_MAX_TOKENS: "2048"
+  GOD_AGENT_TEMPERATURE: "0.7"
+  TICK_INTERVAL_MS: "60000"
+  GAME_MINUTES_PER_TICK: "5"
+  NPC_COUNT: "500"
+  MAX_CONCURRENT_CALLS: "10"
+  GAME_DAYS_PER_YEAR: "15"
+  DEATH_GRACE_TICKS: "5"
+  GRID_W: "300"
+  GRID_H: "300"
+  CITY_COUNT: "18"
+  TERRITORY_COUNT: "6"
+  LLM_BATCH_SIZE: "5"
+  GOD_MAX_TOOL_CALLS: "8"
+  TRAVEL_MINUTES_PER_UNIT: "1"
+  TIER1_COUNT: "50"
+  TIER2_COUNT: "100"
+  MONGODB_URI: "mongodb://mongodb.divinity.svc.cluster.local:27017"
+  MONGODB_DATABASE: "divinity"
+  API_ADDR: ":8080"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: divinity-server
+  namespace: divinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: divinity-server
+  template:
+    metadata:
+      labels:
+        app: divinity-server
+    spec:
+      containers:
+        - name: divinity-server
+          image: divinity-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: divinity-config
+            - secretRef:
+                name: divinity-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: divinity-server
+  namespace: divinity
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: divinity-server

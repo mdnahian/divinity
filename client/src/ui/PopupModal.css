@@ -1,0 +1,242 @@
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000010;
+  background: rgba(20, 15, 5, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.popup-modal {
+  width: 720px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px 8px;
+  border-bottom: 2px solid var(--sdv-parchment-deep);
+  background: linear-gradient(180deg, rgba(232, 212, 168, 0.5) 0%, transparent 100%);
+}
+
+.popup-title {
+  font-family: var(--sdv-font-pixel);
+  font-size: 10px;
+  color: var(--sdv-wood);
+  letter-spacing: 2px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-title-icon {
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.popup-title-text {
+  text-transform: uppercase;
+}
+
+.popup-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 18px;
+}
+
+/* ═══ Shared popup styles ═══ */
+.popup-section {
+  margin-bottom: 14px;
+}
+
+.popup-section h4 {
+  font-family: var(--sdv-font-pixel);
+  font-size: 8px;
+  color: var(--sdv-wood);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--sdv-parchment-deep);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.popup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px;
+}
+
+.popup-card {
+  padding: 8px 10px;
+  background: var(--sdv-cell-bg);
+  border: 1px solid var(--sdv-parchment-deep);
+  border-radius: 4px;
+}
+
+.popup-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.popup-bar-label {
+  width: 90px;
+  font-size: 11px;
+  color: var(--sdv-text-dim);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popup-bar-track {
+  flex: 1;
+  height: 12px;
+  background: var(--sdv-parchment-dark);
+  border: 1px solid var(--sdv-parchment-deep);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.popup-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+
+.popup-bar-val {
+  width: 36px;
+  font-size: 10px;
+  text-align: right;
+  color: var(--sdv-text-dim);
+  font-weight: 600;
+}
+
+.popup-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.popup-table th {
+  text-align: left;
+  font-family: var(--sdv-font-pixel);
+  font-size: 7px;
+  color: var(--sdv-wood);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-bottom: 2px solid var(--sdv-parchment-deep);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.popup-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--sdv-parchment-deep);
+  color: var(--sdv-text);
+}
+
+.popup-table tr:hover td {
+  background: rgba(212, 190, 138, 0.3);
+}
+
+.popup-tag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  margin: 2px;
+  border: 1px solid var(--sdv-parchment-deep);
+  background: var(--sdv-parchment);
+  color: var(--sdv-text);
+}
+
+.popup-stat-value {
+  font-weight: 700;
+  color: var(--sdv-text-bright);
+}
+
+.popup-empty {
+  text-align: center;
+  color: var(--sdv-text-dim);
+  font-style: italic;
+  padding: 20px;
+}
+
+/* ═══ World popup ═══ */
+.world-popup-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-family: var(--sdv-font-body);
+  border: 1px solid var(--sdv-parchment-deep);
+  border-radius: 4px;
+  background: var(--sdv-cell-bg);
+  color: var(--sdv-text);
+  outline: none;
+}
+.world-popup-search:focus {
+  border-color: var(--sdv-wood);
+}
+
+.world-popup-npc-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.world-popup-npc-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 11px;
+}
+.world-popup-npc-row:hover {
+  background: rgba(139, 105, 20, 0.12);
+}
+.world-popup-npc-dead {
+  opacity: 0.5;
+}
+
+.world-popup-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.world-popup-npc-name {
+  font-weight: 600;
+  color: var(--sdv-text-bright);
+}
+.world-popup-npc-prof {
+  color: var(--sdv-text-dim);
+  font-size: 10px;
+}
+.world-popup-dead-tag {
+  color: var(--sdv-red);
+  font-size: 9px;
+  font-style: italic;
+}
+
+.world-popup-loc-list {
+  max-height: 260px;
+  overflow-y: auto;
+}

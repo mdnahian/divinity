@@ -1,0 +1,459 @@
+package action
+
+import (
+	"fmt"
+	"math"
+	"math/rand"
+
+	"github.com/divinity/core/knowledge"
+	"github.com/divinity/core/memory"
+	"github.com/divinity/core/npc"
+	"github.com/divinity/core/world"
+)
+
+func destFirstOfType(t string) func(*npc.NPC, *world.World) string {
+	return func(_ *npc.NPC, w *world.World) string {
+		locs := w.LocationsByType(t)
+		if len(locs) == 0 {
+			return ""
+		}
+		return locs[0].ID
+	}
+}
+
+func destNearestOfType(t string) func(*npc.NPC, *world.World) string {
+	return func(n *npc.NPC, w *world.World) string {
+		locs := w.LocationsByType(t)
+		if len(locs) == 0 {
+			return ""
+		}
+		cur := w.LocationByID(n.LocationID)
+		if cur == nil {
+			return locs[0].ID
+		}
+		var best *world.Location
+		bestDist := math.MaxFloat64
+		cx, cy := float64(cur.X+cur.W/2), float64(cur.Y+cur.H/2)
+		for _, l := range locs {
+			if w.IsLocationFull(l.ID) {
+				continue // skip locations at capacity
+			}
+			// Skip wells with no water
+			if t == "well" && l.Resources != nil && l.Resources["water"] <= 0 {
+				continue
+			}
+			dx := float64(l.X+l.W/2) - cx
+			dy := float64(l.Y+l.H/2) - cy
+			d := math.Abs(dx) + math.Abs(dy)
+			if d < bestDist {
+				bestDist = d
+				best = l
+			}
+		}
+		if best == nil {
+			return locs[0].ID // fallback if all full
+		}
+		return best.ID
+	}
+}
+
+func candidatesOfType(t string) func(*npc.NPC, *world.World) []*world.Location {
+	return func(_ *npc.NPC, w *world.World) []*world.Location {
+		return w.LocationsByType(t)
+	}
+}
+
+var gatherActions = []Action{
+	{
+		ID: "forage", Label: "Forage for food in the forest", Category: "gather", BaseGameMinutes: 30, SkillKey: "herbalism",
+		Destination: destNearestOfType("forest"),
+		Candidates:  candidatesOfType("forest"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 75 {
+				return false
+			}
+			forests := w.LocationsByType("forest")
+			if len(forests) == 0 {
+				return false
+			}
+			f := forests[0]
+			return f.Resources == nil || f.Resources["berries"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			forests := w.LocationsByType("forest")
+			avail := 99
+			if len(forests) > 0 && forests[0].Resources != nil {
+				avail = forests[0].Resources["berries"]
+			}
+			found := int(math.Min(float64(randInt(1, 3)), float64(avail)))
+			if found <= 0 {
+				return "The forest has no berries left to forage."
+			}
+			if len(forests) > 0 && forests[0].Resources != nil {
+				forests[0].Resources["berries"] = max(0, forests[0].Resources["berries"]-found)
+			}
+			n.AddItem("berries", found)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			if rand.Float64() < 0.15 {
+				herbs := 1
+				if len(forests) > 0 && forests[0].Resources != nil {
+					herbs = forests[0].Resources["herbs"]
+					if herbs > 0 {
+						forests[0].Resources["herbs"]--
+					}
+				}
+				if herbs > 0 {
+					n.AddItem("herbs", 1)
+					return fmt.Sprintf("Foraged in the woods and found %d berries and some herbs.", found)
+				}
+			}
+			return fmt.Sprintf("Foraged in the woods and found %d berries.", found)
+		},
+	},
+	{
+		ID: "hunt", Label: "Hunt game in the forest", Category: "gather", BaseGameMinutes: 45, SkillKey: "hunter",
+		Destination: destNearestOfType("forest"),
+		Candidates:  candidatesOfType("forest"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 65 || n.Stats.Strength <= 30 {
+				return false
+			}
+			forests := w.LocationsByType("forest")
+			if len(forests) == 0 {
+				return false
+			}
+			f := forests[0]
+			return f.Resources == nil || f.Resources["game"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			forests := w.LocationsByType("forest")
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+15, 0, 100)
+			avail := 99
+			if len(forests) > 0 && forests[0].Resources != nil {
+				avail = forests[0].Resources["game"]
+			}
+			if avail <= 0 {
+				return "No game left in the forest to hunt."
+			}
+			skill := float64(n.Stats.Agility+n.Stats.Strength) / 2
+			if rand.Float64()*100 < skill {
+				meat := int(math.Min(float64(randInt(1, 2)), float64(avail)))
+				if len(forests) > 0 && forests[0].Resources != nil {
+					forests[0].Resources["game"] = max(0, forests[0].Resources["game"]-meat)
+				}
+				n.AddItem("raw meat", meat)
+				n.GainSkill("hunter", 0.5)
+				if rand.Float64() < 0.4 {
+					n.AddItem("hide", 1)
+					return fmt.Sprintf("Hunted successfully — %d raw meat and a hide.", meat)
+				}
+				return fmt.Sprintf("Hunted successfully — %d raw meat.", meat)
+			}
+			n.GainSkill("hunter", 0.1)
+			return "Spent hours tracking game but came back empty-handed (+hunting experience)."
+		},
+	},
+	{
+		ID: "farm", Label: "Work the wheat fields", Category: "gather", BaseGameMinutes: 30, SkillKey: "farmer",
+		Destination: destNearestOfType("farm"),
+		Candidates:  candidatesOfType("farm"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 {
+				return false
+			}
+			farms := w.LocationsByType("farm")
+			if len(farms) == 0 {
+				return false
+			}
+			return farms[0].Resources == nil || farms[0].Resources["wheat"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			farms := w.LocationsByType("farm")
+			avail := 99
+			if len(farms) > 0 && farms[0].Resources != nil {
+				avail = farms[0].Resources["wheat"]
+			}
+			harvested := int(math.Min(float64(randInt(1, 4)), float64(avail)))
+			if harvested <= 0 {
+				return "The fields are barren — no wheat to harvest."
+			}
+			bonus := knowledge.GetTechniqueBonus(n.ID, "crop_yield", w.Techniques)
+			if bonus > 0 {
+				harvested = int(math.Ceil(float64(harvested) * (1 + bonus)))
+			}
+			if len(farms) > 0 && farms[0].Resources != nil {
+				farms[0].Resources["wheat"] = max(0, farms[0].Resources["wheat"]-harvested)
+			}
+			n.AddItem("wheat", harvested)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+12, 0, 100)
+			n.GainSkill("farmer", 0.3)
+			return fmt.Sprintf("Worked the fields and harvested %d wheat.", harvested)
+		},
+	},
+	{
+		ID: "fish", Label: "Fish at the dock or river", Category: "gather", BaseGameMinutes: 30, SkillKey: "fisher",
+		Destination: destNearestOfType("dock"),
+		Candidates:  candidatesOfType("dock"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 {
+				return false
+			}
+			docks := w.LocationsByType("dock")
+			if len(docks) == 0 {
+				return false
+			}
+			return docks[0].Resources == nil || docks[0].Resources["fish"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			docks := w.LocationsByType("dock")
+			avail := 99
+			if len(docks) > 0 && docks[0].Resources != nil {
+				avail = docks[0].Resources["fish"]
+			}
+			if avail <= 0 {
+				return "The waters are fished out — nothing to catch."
+			}
+			if rand.Float64() < 0.6 {
+				caught := int(math.Min(float64(randInt(1, 3)), float64(avail)))
+				bonus := knowledge.GetTechniqueBonus(n.ID, "fish_catch", w.Techniques)
+				if bonus > 0 {
+					caught = int(math.Ceil(float64(caught) * (1 + bonus)))
+				}
+				if len(docks) > 0 && docks[0].Resources != nil {
+					docks[0].Resources["fish"] = max(0, docks[0].Resources["fish"]-caught)
+				}
+				n.AddItem("fish", caught)
+				n.GainSkill("fisher", 0.3)
+				return fmt.Sprintf("Caught %d fish.", caught)
+			}
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.GainSkill("fisher", 0.1)
+			return "Sat by the water but caught nothing (+fishing experience)."
+		},
+	},
+	{
+		ID: "chop_wood", Label: "Chop wood in the forest (needs axe)", Category: "gather", BaseGameMinutes: 45, SkillKey: "carpentry",
+		Destination: destNearestOfType("forest"),
+		Candidates:  candidatesOfType("forest"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 || n.Equipment.Weapon == nil || n.Equipment.Weapon.Name != "iron axe" {
+				return false
+			}
+			forests := w.LocationsByType("forest")
+			if len(forests) == 0 {
+				return false
+			}
+			return forests[0].Resources == nil || forests[0].Resources["wood"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			forests := w.LocationsByType("forest")
+			avail := 99
+			if len(forests) > 0 && forests[0].Resources != nil {
+				avail = forests[0].Resources["wood"]
+			}
+			qty := int(math.Min(float64(randInt(1, 3)), float64(avail)))
+			if qty <= 0 {
+				return "No trees left to chop in the forest."
+			}
+			if len(forests) > 0 && forests[0].Resources != nil {
+				forests[0].Resources["wood"] = max(0, forests[0].Resources["wood"]-qty)
+			}
+			n.AddItem("logs", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+12, 0, 100)
+			n.GainSkill("woodcutter", 0.3)
+			if n.Equipment.Weapon != nil {
+				n.Equipment.Weapon.Durability = math.Max(0, n.Equipment.Weapon.Durability-1)
+			}
+			return fmt.Sprintf("Chopped %d logs in the forest.", qty)
+		},
+	},
+	{
+		ID: "mine_stone", Label: "Mine stone (needs pickaxe)", Category: "gather", BaseGameMinutes: 45, SkillKey: "miner",
+		Destination: destNearestOfType("mine"),
+		Candidates:  candidatesOfType("mine"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 || n.Equipment.Weapon == nil || n.Equipment.Weapon.Name != "pickaxe" {
+				return false
+			}
+			mines := w.LocationsByType("mine")
+			if len(mines) == 0 {
+				return false
+			}
+			return mines[0].Resources == nil || mines[0].Resources["stone"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			mines := w.LocationsByType("mine")
+			avail := 99
+			if len(mines) > 0 && mines[0].Resources != nil {
+				avail = mines[0].Resources["stone"]
+			}
+			qty := int(math.Min(float64(randInt(1, 2)), float64(avail)))
+			if qty <= 0 {
+				return "The mine has no stone left to extract."
+			}
+			if len(mines) > 0 && mines[0].Resources != nil {
+				mines[0].Resources["stone"] = max(0, mines[0].Resources["stone"]-qty)
+			}
+			n.AddItem("stone", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+14, 0, 100)
+			n.GainSkill("miner", 0.3)
+			if n.Equipment.Weapon != nil {
+				n.Equipment.Weapon.Durability = math.Max(0, n.Equipment.Weapon.Durability-1)
+			}
+			return fmt.Sprintf("Mined %d stone.", qty)
+		},
+	},
+	{
+		ID: "mine_ore", Label: "Mine iron ore (needs pickaxe)", Category: "gather", BaseGameMinutes: 45, SkillKey: "miner",
+		Destination: destNearestOfType("mine"),
+		Candidates:  candidatesOfType("mine"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 65 || n.Equipment.Weapon == nil || n.Equipment.Weapon.Name != "pickaxe" {
+				return false
+			}
+			mines := w.LocationsByType("mine")
+			if len(mines) == 0 {
+				return false
+			}
+			return mines[0].Resources == nil || mines[0].Resources["iron_ore"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			mines := w.LocationsByType("mine")
+			avail := 99
+			if len(mines) > 0 && mines[0].Resources != nil {
+				avail = mines[0].Resources["iron_ore"]
+			}
+			qty := int(math.Min(float64(randInt(1, 2)), float64(avail)))
+			if qty <= 0 {
+				return "The mine has no iron ore left."
+			}
+			if len(mines) > 0 && mines[0].Resources != nil {
+				mines[0].Resources["iron_ore"] = max(0, mines[0].Resources["iron_ore"]-qty)
+			}
+			n.AddItem("iron ore", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+16, 0, 100)
+			n.GainSkill("miner", 0.4)
+			if n.Equipment.Weapon != nil {
+				n.Equipment.Weapon.Durability = math.Max(0, n.Equipment.Weapon.Durability-1)
+			}
+			return fmt.Sprintf("Mined %d iron ore from the depths.", qty)
+		},
+	},
+	{
+		ID: "gather_thatch", Label: "Gather thatch from the fields", Category: "gather", BaseGameMinutes: 30,
+		Destination: destNearestOfType("farm"),
+		Candidates:  candidatesOfType("farm"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 {
+				return false
+			}
+			farms := w.LocationsByType("farm")
+			if len(farms) == 0 {
+				return false
+			}
+			return farms[0].Resources == nil || farms[0].Resources["thatch"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			farms := w.LocationsByType("farm")
+			avail := 99
+			if len(farms) > 0 && farms[0].Resources != nil {
+				avail = farms[0].Resources["thatch"]
+			}
+			qty := int(math.Min(float64(randInt(1, 3)), float64(avail)))
+			if qty <= 0 {
+				return "No thatch left in the fields to gather."
+			}
+			if len(farms) > 0 && farms[0].Resources != nil {
+				farms[0].Resources["thatch"] = max(0, farms[0].Resources["thatch"]-qty)
+			}
+			n.AddItem("thatch", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			return fmt.Sprintf("Gathered %d thatch from the fields.", qty)
+		},
+	},
+	{
+		ID: "gather_clay", Label: "Gather clay near water", Category: "gather", BaseGameMinutes: 30,
+		Destination: func(n *npc.NPC, w *world.World) string {
+			docks := w.LocationsByType("dock")
+			if len(docks) > 0 {
+				return docks[0].ID
+			}
+			wells := w.LocationsByType("well")
+			if len(wells) > 0 {
+				return wells[0].ID
+			}
+			return ""
+		},
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 {
+				return false
+			}
+			docks := w.LocationsByType("dock")
+			wells := w.LocationsByType("well")
+			var loc *world.Location
+			if len(docks) > 0 {
+				loc = docks[0]
+			} else if len(wells) > 0 {
+				loc = wells[0]
+			}
+			if loc == nil {
+				return false
+			}
+			return loc.Resources == nil || loc.Resources["clay"] > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			docks := w.LocationsByType("dock")
+			wells := w.LocationsByType("well")
+			var loc *world.Location
+			if len(docks) > 0 {
+				loc = docks[0]
+			} else if len(wells) > 0 {
+				loc = wells[0]
+			}
+			avail := 99
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["clay"]
+			}
+			qty := int(math.Min(float64(randInt(1, 2)), float64(avail)))
+			if qty <= 0 {
+				return "No clay left to gather here."
+			}
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["clay"] = max(0, loc.Resources["clay"]-qty)
+			}
+			n.AddItem("clay", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+10, 0, 100)
+			return fmt.Sprintf("Gathered %d clay near the water.", qty)
+		},
+	},
+	{
+		ID: "scavenge", Label: "Pick up items/loot from the ground at your location", Category: "gather",
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			return len(w.GroundItemsAt(n.LocationID)) > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			items := w.GroundItemsAt(n.LocationID)
+			if len(items) == 0 {
+				return "Searched around but found nothing."
+			}
+			var results []string
+			for _, item := range items {
+				picked := w.PickUpGroundItem(n, item.Name)
+				if picked != nil {
+					results = append(results, fmt.Sprintf("%dx %s", picked.Qty, picked.Name))
+				}
+			}
+			if len(results) == 0 {
+				return "Searched around but found nothing useful."
+			}
+			result := "Picked up loot from the ground: "
+			for i, r := range results {
+				if i > 0 {
+					result += ", "
+				}
+				result += r
+			}
+			return result + "."
+		},
+	},
+}
