@@ -585,3 +585,55 @@
   margin: 0;
   font-family: 'Courier New', monospace;
 }
+
+/* ── Mobile: Inspector as bottom sheet ── */
+@media (max-width: 768px) {
+  .right-panel {
+    width: 100vw;
+    height: auto;
+    max-height: 55vh;
+    top: auto;
+    bottom: 0;
+    right: 0;
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .right-panel::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: var(--sdv-parchment-deep);
+    border-radius: 2px;
+    margin: 8px auto 4px;
+  }
+
+  .insp-header h3 { font-size: 16px; }
+  .insp-sub { font-size: 13px; }
+  .insp-section h4 { font-size: 10px; }
+  .stat-cell, .skill-cell, .bar-label, .rel-entry { font-size: 13px; }
+  .bar-val { font-size: 12px; }
+  .mood-badge { font-size: 10px; }
+  .mem-entry { font-size: 12px; }
+  .insp-kv { font-size: 14px; }
+  .inspector-hint { font-size: 10px; }
+  .npc-preview-canvas { width: 80px; height: 80px; }
+  .insp-activity { font-size: 13px; }
+  .act-reason, .insp-dialogue { font-size: 13px; }
+  .equip-slot, .inv-item { font-size: 13px; }
+  .loc-entity-row { font-size: 13px; }
+  .npc-roster-row { font-size: 13px; }
+  .npc-roster-title { font-size: 10px; }
+  .npc-roster-search { font-size: 14px; padding: 8px 10px; }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .prompt-modal {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 85vh;
+    border-radius: 12px 12px 0 0;
+  }
+}

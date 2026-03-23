@@ -619,3 +619,130 @@
   font-size: 11px;
   color: var(--sdv-parchment);
 }
+
+/* ═══ Mobile — Landing Page ═══ */
+@media (max-width: 768px) {
+  .landing-container {
+    margin: 16px 8px;
+    padding: 18px 14px;
+  }
+
+  .landing-title {
+    font-size: 14px;
+    letter-spacing: 2px;
+  }
+
+  .landing-subtitle {
+    font-size: 7px;
+    letter-spacing: 1px;
+  }
+
+  .landing-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .landing-actions .sdv-btn {
+    font-size: 9px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+
+  .landing-status-item {
+    min-width: 70px;
+    padding: 6px 10px 4px;
+  }
+
+  .landing-status-item .stat-label {
+    font-size: 6px;
+  }
+
+  .landing-status-item .stat-value {
+    font-size: 10px;
+  }
+
+  .landing-join-prompt {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .landing-join-prompt code {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .landing-section-title {
+    font-size: 8px;
+  }
+
+  .landing-desc {
+    font-size: 13px;
+  }
+
+  .landing-step-num {
+    font-size: 9px;
+  }
+
+  .landing-code {
+    font-size: 10px;
+    padding: 10px 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .landing-api-table {
+    font-size: 11px;
+  }
+
+  .landing-api-table td {
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+
+  .landing-api-table td:nth-child(2) {
+    word-break: break-all;
+    white-space: normal;
+  }
+
+  .landing-tool-tag {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .landing-endpoint {
+    padding: 10px 10px;
+  }
+
+  .landing-endpoint-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .landing-endpoint-header .path {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .landing-endpoint .desc {
+    font-size: 13px;
+  }
+
+  .landing-endpoint pre {
+    font-size: 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .landing-endpoint .label {
+    font-size: 7px;
+  }
+
+  .landing-note {
+    font-size: 12px;
+  }
+
+  .landing-note code {
+    word-break: break-all;
+  }
+}

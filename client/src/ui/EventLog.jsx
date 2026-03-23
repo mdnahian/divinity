@@ -23,6 +23,9 @@ function classifyNpcEvent(text) {
 export default function EventLog() {
   const events = useGameStore(s => s.events);
   const selectNpc = useGameStore(s => s.selectNpc);
+  const isMobile = useGameStore(s => s.isMobile);
+  const chronicleOpen = useGameStore(s => s.chronicleOpen);
+  const closeChronicle = useGameStore(s => s.closeChronicle);
   const logRef = useRef(null);
 
   useEffect(() => {
@@ -37,25 +40,30 @@ export default function EventLog() {
     }
   };
 
+  const mobileOpen = isMobile && chronicleOpen;
+
   return (
-    <div className="left-panel sdv-frame" onPointerDown={e => e.stopPropagation()} onWheel={e => e.stopPropagation()}>
-      <div className="panel-header">
-        <h4 className="sdv-section-title chronicle-title"><span style={{ fontFamily: "'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif" }}>📜</span> Chronicle</h4>
+    <>
+      {mobileOpen && <div className="chronicle-backdrop" onClick={closeChronicle} />}
+      <div className={`left-panel sdv-frame${mobileOpen ? ' mobile-open' : ''}`} onPointerDown={e => e.stopPropagation()} onWheel={e => e.stopPropagation()}>
+        <div className="panel-header">
+          <h4 className="sdv-section-title chronicle-title"><span style={{ fontFamily: "'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif" }}>📜</span> Chronicle</h4>
+        </div>
+        <div className="event-log sdv-scroll" ref={logRef}>
+          {events.map((entry, i) => {
+            const subType = entry.type === 'npc' ? classifyNpcEvent(entry.text) : entry.type;
+            return (
+              <div
+                key={i}
+                className={`log-entry log-${subType}${entry.npcId ? ' log-clickable' : ''}`}
+                onClick={() => handleClick(entry)}
+              >
+                <span className="log-time">[{entry.time}]</span> {entry.text}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="event-log sdv-scroll" ref={logRef}>
-        {events.map((entry, i) => {
-          const subType = entry.type === 'npc' ? classifyNpcEvent(entry.text) : entry.type;
-          return (
-            <div
-              key={i}
-              className={`log-entry log-${subType}${entry.npcId ? ' log-clickable' : ''}`}
-              onClick={() => handleClick(entry)}
-            >
-              <span className="log-time">[{entry.time}]</span> {entry.text}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    </>
   );
 }

@@ -45,3 +45,31 @@
 .ui-layer > * {
   pointer-events: auto;
 }
+
+/* ── Chronicle toggle (mobile only) ── */
+.chronicle-toggle {
+  display: none;
+}
+
+/* ── Mobile layout ── */
+@media (max-width: 768px) {
+  .main-column {
+    width: 100vw;
+  }
+
+  .chronicle-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1000001;
+    width: 40px;
+    height: 40px;
+    padding: 0 !important;
+    font-size: 18px;
+    line-height: 1;
+    pointer-events: auto;
+  }
+}

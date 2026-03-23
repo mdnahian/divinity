@@ -27,10 +27,22 @@ export default function BottomToolbar() {
   const myAgentNpcId = useGameStore(s => s.myAgentNpcId);
   const selectNpc = useGameStore(s => s.selectNpc);
   const setFollowNpc = useGameStore(s => s.setFollowNpc);
+  const isMobile = useGameStore(s => s.isMobile);
+  const toggleChronicle = useGameStore(s => s.toggleChronicle);
 
   return (
     <div className="bottom-toolbar sdv-frame" onPointerDown={e => e.stopPropagation()}>
       <div className="toolbar-buttons">
+        {isMobile && (
+          <button
+            className="sdv-btn toolbar-btn"
+            onClick={toggleChronicle}
+            title="Chronicle"
+          >
+            <span className="toolbar-btn-icon">📜</span>
+            <span className="toolbar-btn-label">Chronicle</span>
+          </button>
+        )}
         {myAgentNpcId && (
           <button
             className="sdv-btn toolbar-btn my-agent-btn"

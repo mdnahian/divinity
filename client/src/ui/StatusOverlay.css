@@ -34,3 +34,20 @@
   background: var(--sdv-parchment-deep);
   border-radius: 1px;
 }
+
+@media (max-width: 768px) {
+  .status-overlay {
+    left: 56px;
+    top: 8px;
+    right: auto;
+    padding: 4px 10px;
+  }
+
+  .status-text {
+    font-size: 10px;
+  }
+
+  .status-icon {
+    font-size: 14px;
+  }
+}

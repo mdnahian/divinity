@@ -109,3 +109,13 @@
   color: #8b6914;
   font-size: 14px;
 }
+
+@media (max-width: 768px) {
+  .chronicle-book {
+    min-height: 200px;
+  }
+
+  .chronicle-page {
+    padding: 16px 18px;
+  }
+}

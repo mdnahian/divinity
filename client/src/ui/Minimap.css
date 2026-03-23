@@ -31,3 +31,19 @@
   pointer-events: none;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
 }
+
+@media (max-width: 768px) {
+  .minimap-wrap {
+    right: 8px;
+    bottom: 70px;
+  }
+
+  .minimap-canvas {
+    width: 100px;
+    height: 100px;
+  }
+
+  .minimap-label {
+    font-size: 8px;
+  }
+}

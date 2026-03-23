@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useGameStore } from './hooks/useGameStore';
+import { useIsMobile } from './hooks/useIsMobile';
 import { createGame, destroyGame } from './game/PhaserGame';
 import { client } from './game/systems/client';
 import StatusOverlay from './ui/StatusOverlay';
@@ -60,11 +61,14 @@ const POPUP_MAP = {
 };
 
 export default function App() {
+  useIsMobile();
   const worldReady = useGameStore(s => s.worldReady);
   const genesisComplete = useGameStore(s => s.genesisComplete);
   const sceneReady = useGameStore(s => s.sceneReady);
   const inspectorOpen = useGameStore(s => s.inspectorOpen);
   const activePopup = useGameStore(s => s.activePopup);
+  const isMobile = useGameStore(s => s.isMobile);
+  const toggleChronicle = useGameStore(s => s.toggleChronicle);
 
   useEffect(() => {
     client.fetchInitialWorld();
@@ -121,6 +125,11 @@ export default function App() {
         </div>
         {sceneReady && <EventLog />}
         {sceneReady && <StatusOverlay />}
+        {sceneReady && isMobile && (
+          <button className="sdv-btn chronicle-toggle" onClick={toggleChronicle} title="Chronicle">
+            📖
+          </button>
+        )}
         {sceneReady && <Minimap />}
         {sceneReady && inspectorOpen && <Inspector />}
         {sceneReady && PopupComponent && <PopupComponent />}

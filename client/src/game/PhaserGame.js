@@ -26,6 +26,8 @@ export function createGame(parentElement) {
     scene: [BootScene, WorldScene],
     input: {
       mouse: { preventDefaultWheel: true },
+      touch: { capture: true },
+      activePointers: 2,
     },
   };
 

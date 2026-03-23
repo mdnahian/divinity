@@ -28,6 +28,10 @@ export class CameraController {
     this._boundsSet = false;
     this._minZoom = 0.15;
 
+    // Pinch-to-zoom state
+    this.pinching = false;
+    this._pinchDist = 0;
+
     this._onFitWorld = () => this.fitWorld();
     window.addEventListener('divinity-fit-world', this._onFitWorld);
 
@@ -56,6 +60,38 @@ export class CameraController {
     });
 
     scene.input.on('pointermove', (pointer) => {
+      // Pinch-to-zoom: detect two active pointers
+      const p1 = scene.input.pointer1;
+      const p2 = scene.input.pointer2;
+      if (p1.isDown && p2.isDown) {
+        const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        if (!this.pinching) {
+          this.pinching = true;
+          this._pinchDist = dist;
+          this.dragging = false;
+          this.dragMoved = false;
+          return;
+        }
+        if (this._pinchDist > 0 && dist > 0) {
+          const ratio = dist / this._pinchDist;
+          const oldZoom = this.cam.zoom;
+          const newZoom = snapZoom(Math.max(this._minZoom, Math.min(MAX_ZOOM, oldZoom * ratio)));
+
+          // Zoom centered on midpoint of the two fingers
+          const midX = (p1.x + p2.x) / 2;
+          const midY = (p1.y + p2.y) / 2;
+          const worldX = this.cam.scrollX + midX / oldZoom;
+          const worldY = this.cam.scrollY + midY / oldZoom;
+          this.cam.zoom = newZoom;
+          this.cam.scrollX = worldX - midX / newZoom;
+          this.cam.scrollY = worldY - midY / newZoom;
+        }
+        this._pinchDist = dist;
+        return;
+      }
+
+      // Single-pointer drag (suppress during/after pinch)
+      if (this.pinching) return;
       if (!this.dragging) return;
       const dx = pointer.x - this.dragStartX;
       const dy = pointer.y - this.dragStartY;
@@ -79,6 +115,13 @@ export class CameraController {
 
     scene.input.on('pointerup', () => {
       this.dragging = false;
+      // Clear pinch state when fewer than 2 pointers remain
+      const p1 = scene.input.pointer1;
+      const p2 = scene.input.pointer2;
+      if (!p1.isDown || !p2.isDown) {
+        this.pinching = false;
+        this._pinchDist = 0;
+      }
     });
 
     scene.input.on('wheel', (pointer, gameObjects, deltaX, deltaY) => {
@@ -180,7 +223,7 @@ export class CameraController {
       this._followTarget = null;
     }
 
-    if (!this.dragging && (Math.abs(this.velocityX) > 0.5 || Math.abs(this.velocityY) > 0.5)) {
+    if (!this.dragging && !this.pinching && (Math.abs(this.velocityX) > 0.5 || Math.abs(this.velocityY) > 0.5)) {
       this.cam.scrollX += this.velocityX * 0.3;
       this.cam.scrollY += this.velocityY * 0.3;
       this.velocityX *= PAN_DECEL;

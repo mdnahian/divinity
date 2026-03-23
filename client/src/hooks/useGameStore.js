@@ -20,6 +20,8 @@ export const useGameStore = create((set, get) => ({
   inspectorOpen: false,
   minimapVisible: true,
   activePopup: null,
+  isMobile: false,
+  chronicleOpen: false,
 
   setWorld: (world) => set({ world, worldReady: true }),
   setWorldReady: (worldReady) => set({ worldReady }),
@@ -66,7 +68,10 @@ export const useGameStore = create((set, get) => ({
   openPopup: (name) => set({ activePopup: name }),
   closePopup: () => set({ activePopup: null }),
   togglePopup: (name) => set((s) => ({ activePopup: s.activePopup === name ? null : name })),
-  closeAllPanels: () => set({ inspectorOpen: false, activePopup: null }),
+  setIsMobile: (isMobile) => set({ isMobile }),
+  toggleChronicle: () => set((s) => ({ chronicleOpen: !s.chronicleOpen })),
+  closeChronicle: () => set({ chronicleOpen: false }),
+  closeAllPanels: () => set({ inspectorOpen: false, activePopup: null, chronicleOpen: false }),
 
   phaserScene: null,
   setPhaserScene: (scene) => set({ phaserScene: scene }),
