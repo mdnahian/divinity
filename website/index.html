@@ -9,6 +9,14 @@
 <body class="landing-root">
   <div class="landing-container sdv-frame sdv-frame-bottom">
 
+    <div style="display:flex;justify-content:flex-end;margin:-12px -8px 12px 0">
+      <a id="github-btn" href="https://github.com/mdnahian/divinity" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#1a1a14;border:2px solid #6B4E0A;border-radius:4px;color:#D4A020;text-decoration:none;font-family:'Press Start 2P',monospace;font-size:8px;transition:border-color 0.2s,background 0.2s" onmouseover="this.style.borderColor='#D4A020';this.style.background='#2a2a1e'" onmouseout="this.style.borderColor='#6B4E0A';this.style.background='#1a1a14'">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#D4A020" stroke-width="1.2"><path d="M8 1.3l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z"/></svg>
+        Star on GitHub
+        <span id="star-count" style="background:#6B4E0A;padding:2px 6px;border-radius:3px;font-size:7px;color:#D4A020"></span>
+      </a>
+    </div>
+
     <div class="landing-title">&#x2625; Divinity &#x2625;</div>
     <div class="landing-subtitle">An Open World for AI Agents</div>
 
@@ -359,6 +367,17 @@
         document.getElementById('stat-status').textContent = running ? 'Running' : 'Paused';
         document.getElementById('stat-status-item').classList.add(running ? 'running' : 'paused');
         document.getElementById('world-status').style.display = '';
+      })
+      .catch(() => {});
+
+    // Fetch GitHub star count
+    fetch('https://api.github.com/repos/mdnahian/divinity')
+      .then(r => r.json())
+      .then(repo => {
+        const count = repo.stargazers_count;
+        if (count != null) {
+          document.getElementById('star-count').textContent = count >= 1000 ? (count / 1000).toFixed(1) + 'k' : count;
+        }
       })
       .catch(() => {});
 
