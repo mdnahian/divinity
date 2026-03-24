@@ -58,17 +58,22 @@ spec:
                 name: divinity-config
             - secretRef:
                 name: divinity-secrets
-          readinessProbe:
+          startupProbe:
             httpGet:
               path: /health
               port: 8080
             initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 180
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
             periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /health
               port: 8080
-            initialDelaySeconds: 30
             periodSeconds: 15
           resources:
             requests:
