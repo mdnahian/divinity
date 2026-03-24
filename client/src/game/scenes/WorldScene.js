@@ -68,7 +68,7 @@ export class WorldScene extends Phaser.Scene {
         this.npcManager._npcClickedId = null;
         return;
       }
-      if (this.cameraController.dragMoved) return;
+      if (this.cameraController.dragMoved || this.cameraController.pinching || this.cameraController._wasPinching) return;
       this._handleMapClick(pointer);
     });
 
@@ -393,7 +393,8 @@ export class WorldScene extends Phaser.Scene {
 
       sprite.on('pointerup', (pointer) => {
         if (pointer.event && pointer.event.target !== this.game.canvas) return;
-        if (this.cameraController?.dragMoved) return;
+        const cc = this.cameraController;
+        if (cc?.dragMoved || cc?.pinching || cc?._wasPinching) return;
         useGameStore.getState().selectLocation(b.locId);
       });
 

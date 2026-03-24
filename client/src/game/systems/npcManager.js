@@ -195,7 +195,8 @@ export class NpcManager {
 
     sprite.on('pointerup', (pointer) => {
       if (pointer.event && pointer.event.target !== this.scene.game.canvas) return;
-      if (this.scene.cameraController?.dragMoved) return;
+      const cc = this.scene.cameraController;
+      if (cc?.dragMoved || cc?.pinching || cc?._wasPinching) return;
       useGameStore.getState().selectNpc(npc.id);
       this._npcClickedId = npc.id;
     });

@@ -32,6 +32,7 @@ export class CameraController {
 
     // Pinch-to-zoom state
     this.pinching = false;
+    this._wasPinching = false;
     this._pinchDist = 0;
 
     this._onFitWorld = () => this.fitWorld();
@@ -53,6 +54,7 @@ export class CameraController {
       if (pointer.rightButtonDown() || pointer.middleButtonDown()) return;
       // Ignore events that didn't originate from the game canvas
       if (pointer.event && pointer.event.target !== scene.game.canvas) return;
+      this._wasPinching = false;
       this.dragging = true;
       this.dragStartX = pointer.x;
       this.dragStartY = pointer.y;
@@ -125,6 +127,7 @@ export class CameraController {
         if (this.pinching) {
           this.velocityX = 0;
           this.velocityY = 0;
+          this._wasPinching = true;
         }
         this.pinching = false;
         this._pinchDist = 0;
