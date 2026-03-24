@@ -117,8 +117,10 @@ func observeTool() *ToolDef {
 			}
 
 			var activeEvents []string
+			seen := make(map[string]bool)
 			for _, e := range w.ActiveEvents {
-				if e.TicksLeft > 0 {
+				if e.TicksLeft > 0 && !seen[e.Name] {
+					seen[e.Name] = true
 					activeEvents = append(activeEvents, e.Name)
 				}
 			}

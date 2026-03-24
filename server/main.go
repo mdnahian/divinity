@@ -149,6 +149,17 @@ func main() {
 			log.Println("[Main] Shared memories hydrated from MongoDB")
 		}
 
+		if savedTokens, err := dbClient.LoadTokens(ctx, worldID); err != nil {
+			log.Printf("[Main] Token hydration warning: %v", err)
+		} else {
+			for token, npcID := range savedTokens {
+				eng.Tokens.Restore(token, npcID)
+			}
+			if len(savedTokens) > 0 {
+				log.Printf("[Main] Tokens hydrated from MongoDB (%d tokens)", len(savedTokens))
+			}
+		}
+
 		if docs, err := dbClient.LoadTrends(ctx); err != nil {
 			log.Printf("[Main] Trend hydration warning: %v", err)
 		} else if len(docs) > 0 {
@@ -199,6 +210,9 @@ func main() {
 	if dbClient != nil {
 		if err := dbClient.SaveWorld(ctx, w); err != nil {
 			log.Printf("[Main] Final save failed: %v", err)
+		}
+		if err := dbClient.SaveTokens(ctx, w.ID, eng.Tokens.All()); err != nil {
+			log.Printf("[Main] Final token save failed: %v", err)
 		}
 		if err := dbClient.SaveRelationships(ctx, eng.Relationships); err != nil {
 			log.Printf("[Main] Final relationships save failed: %v", err)
