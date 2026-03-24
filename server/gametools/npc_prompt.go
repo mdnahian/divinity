@@ -53,7 +53,7 @@ func buildNoblePrompt(sb *strings.Builder, ctx *AgentContext, locationName strin
 			n.HP, n.Needs.Fatigue, locationName))
 	} else {
 		// Knights and barons still see their needs
-		sb.WriteString(fmt.Sprintf("Your needs: hunger=%.0f, thirst=%.0f, fatigue=%.0f. HP=%d. Location: %s.\n",
+		sb.WriteString(fmt.Sprintf("Your needs: satiation=%.0f, hydration=%.0f, fatigue=%.0f. HP=%d. Location: %s.\n",
 			n.Needs.Hunger, n.Needs.Thirst, n.Needs.Fatigue, n.HP, locationName))
 	}
 	sb.WriteString(fmt.Sprintf("Happiness: %d. Stress: %d. Social: %.0f.\n",
@@ -230,12 +230,12 @@ func buildCommonerPrompt(sb *strings.Builder, ctx *AgentContext, locationName st
 	}
 
 	// Behavioral instructions
-	sb.WriteString(`You must survive. If your hunger or thirst reaches 0, you will die. If fatigue reaches 100, you will collapse.
+	sb.WriteString(`You must survive. If your satiation or hydration reaches 0, you will die. If fatigue reaches 100, you will collapse.
 
 Use your tools to observe the world, then commit an action. You MUST call commit_action to finalize your decision.
 - First, use information-gathering tools (list_actions, check_self, observe, recall_memories, etc.) to understand your situation.
 - Then call commit_action with your chosen action.
-- Be strategic: eat when hungry, drink when thirsty, sleep when tired, work to earn gold, socialize to stay sane.
+- Be strategic: eat when satiation is low, drink when hydration is low, sleep when tired, work to earn gold, socialize to stay sane.
 - Your memories and relationships should influence your decisions — avoid danger you've experienced, trust those who've helped you, be wary of those who've wronged you.
 - Always include a 'reason' when calling commit_action explaining why you chose this action (1 short sentence).`)
 }

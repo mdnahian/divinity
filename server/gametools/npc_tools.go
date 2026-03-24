@@ -142,7 +142,7 @@ func needsBarInt(val int) string {
 func checkSelfTool() *ToolDef {
 	return &ToolDef{
 		Name:        "check_self",
-		Description: "Check your own state: HP, hunger, thirst, fatigue, stress, happiness, inventory, equipment, gold, skills, and relationships.",
+		Description: "Check your own state: HP, satiation, hydration, fatigue, stress, happiness, inventory, equipment, gold, skills, and relationships.",
 		Parameters:  json.RawMessage(`{"type":"object","properties":{}}`),
 		Handler: func(ctx *AgentContext, _ json.RawMessage) (string, error) {
 			n := ctx.NPC
@@ -157,7 +157,7 @@ func checkSelfTool() *ToolDef {
 				n.Name, age, lifeStage, n.Profession))
 			sb.WriteString(fmt.Sprintf("Personality: %s | Mood: %s\n",
 				n.PersonalitySummary(), n.Mood()))
-			sb.WriteString(fmt.Sprintf("HP: %d/100 | Hunger: %s | Thirst: %s\n",
+			sb.WriteString(fmt.Sprintf("HP: %d/100 | Satiation: %s | Hydration: %s\n",
 				n.HP, needsBar(n.Needs.Hunger), needsBar(n.Needs.Thirst)))
 			sb.WriteString(fmt.Sprintf("Fatigue: %s | Social: %s\n",
 				needsBar(n.Needs.Fatigue), needsBar(100-n.Needs.SocialNeed)))

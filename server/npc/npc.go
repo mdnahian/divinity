@@ -665,8 +665,14 @@ func (n *NPC) DecayNeeds(cfg *config.Config) {
 		n.Needs.Fatigue = clampF(n.Needs.Fatigue+d.Fatigue, 0, 100)
 	}
 	n.Needs.SocialNeed = clampF(n.Needs.SocialNeed+d.SocialNeed, 0, 100)
-	n.Happiness = clamp(n.Happiness+int(d.Happiness), 0, 100)
-	n.Stress = clamp(n.Stress-int(-d.Stress), 0, 100)
+	// Happiness decays down over time; use probabilistic rounding since rate < 1
+	if d.Happiness > 0 && rand.Float64() < d.Happiness {
+		n.Happiness = clamp(n.Happiness-1, 0, 100)
+	}
+	// Stress decays toward zero over time; d.Stress is negative (e.g. -0.072)
+	if d.Stress < 0 && rand.Float64() < -d.Stress {
+		n.Stress = clamp(n.Stress-1, 0, 100)
+	}
 
 	if n.Needs.Hunger < float64(cfg.Thresholds.HungerUrgent) {
 		n.Stress = clamp(n.Stress+2, 0, 100)

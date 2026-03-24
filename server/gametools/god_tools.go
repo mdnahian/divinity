@@ -198,7 +198,7 @@ func listNPCsTool() *ToolDef {
 						flags += " HP:" + fmt.Sprintf("%d", n.HP)
 					}
 					if n.Needs.Hunger < 10 {
-						flags += fmt.Sprintf(" hunger:%.0f", n.Needs.Hunger)
+						flags += fmt.Sprintf(" satiation:%.0f", n.Needs.Hunger)
 					}
 					crisisNPCs = append(crisisNPCs, fmt.Sprintf("  !! %s (%s, %s)%s", n.Name, n.Profession, tid, flags))
 				}
@@ -295,7 +295,7 @@ func queryNPCTool() *ToolDef {
 
 			// Vitals & Mood
 			sb.WriteString(fmt.Sprintf("\nVitals: HP %d | Happiness %d | Stress %d\n", n.HP, n.Happiness, n.Stress))
-			sb.WriteString(fmt.Sprintf("Needs: Hunger %.0f | Thirst %.0f | Fatigue %.0f | Social %.0f\n",
+			sb.WriteString(fmt.Sprintf("Needs: Satiation %.0f | Hydration %.0f | Fatigue %.0f | Social %.0f\n",
 				n.Needs.Hunger, n.Needs.Thirst, n.Needs.Fatigue, n.Needs.SocialNeed))
 			sb.WriteString(fmt.Sprintf("Mood: %s\n", n.Mood()))
 
@@ -546,7 +546,7 @@ func readPrayersTool() *ToolDef {
 
 			var sb strings.Builder
 			for _, p := range w.RecentPrayers {
-				sb.WriteString(fmt.Sprintf("- %s prayed: \"%s\" (HP: %d, stress: %d, hunger: %.0f) at %s\n",
+				sb.WriteString(fmt.Sprintf("- %s prayed: \"%s\" (HP: %d, stress: %d, satiation: %.0f) at %s\n",
 					p.NpcName, p.Prayer, p.HP, p.Stress, p.Hunger, p.Time))
 			}
 			return sb.String(), nil
@@ -832,7 +832,7 @@ func territoryDetailTool() *ToolDef {
 						flags += fmt.Sprintf(" HP:%d", n.HP)
 					}
 					if n.Needs.Hunger < 10 {
-						flags += fmt.Sprintf(" hunger:%.0f", n.Needs.Hunger)
+						flags += fmt.Sprintf(" satiation:%.0f", n.Needs.Hunger)
 					}
 					sb.WriteString(fmt.Sprintf("  !! %s (%s)%s\n", n.Name, n.Profession, flags))
 				}
