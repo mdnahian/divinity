@@ -153,49 +153,51 @@ export class WorldScene extends Phaser.Scene {
     const selectedNpc = store.selectedNpc;
     const selectedLoc = store.selectedLocation;
 
-    if (selectedNpc && selectedNpc !== this._lastZoomedNpcId) {
-      const npc = world?.npcs?.find(n => n.id === selectedNpc);
-      if (npc?.alive) {
-        const sprite = this.npcManager?.getNpcSprite(selectedNpc);
-        if (sprite) {
-          this.cameraController?.zoomTo(sprite.x, sprite.y);
-          this._lastZoomedNpcId = selectedNpc;
-        } else {
-          // Sprite not rendered yet — zoom to NPC's location
-          const loc = world?.locations?.find(l => l.id === npc.locationId);
-          if (loc) {
-            const cx = (loc.x + (loc.w || 1) / 2) * TS;
-            const cy = (loc.y + (loc.h || 1) / 2) * TS;
-            this.cameraController?.zoomTo(cx, cy);
+    if (!store.isMobile) {
+      if (selectedNpc && selectedNpc !== this._lastZoomedNpcId) {
+        const npc = world?.npcs?.find(n => n.id === selectedNpc);
+        if (npc?.alive) {
+          const sprite = this.npcManager?.getNpcSprite(selectedNpc);
+          if (sprite) {
+            this.cameraController?.zoomTo(sprite.x, sprite.y);
             this._lastZoomedNpcId = selectedNpc;
+          } else {
+            // Sprite not rendered yet — zoom to NPC's location
+            const loc = world?.locations?.find(l => l.id === npc.locationId);
+            if (loc) {
+              const cx = (loc.x + (loc.w || 1) / 2) * TS;
+              const cy = (loc.y + (loc.h || 1) / 2) * TS;
+              this.cameraController?.zoomTo(cx, cy);
+              this._lastZoomedNpcId = selectedNpc;
+            }
           }
+        } else if (npc && !npc.alive) {
+          this._lastZoomedNpcId = selectedNpc;
         }
-      } else if (npc && !npc.alive) {
-        this._lastZoomedNpcId = selectedNpc;
+      } else if (!selectedNpc) {
+        this._lastZoomedNpcId = null;
       }
-    } else if (!selectedNpc) {
-      this._lastZoomedNpcId = null;
-    }
 
-    if (selectedLoc && selectedLoc !== this._lastZoomedLocId) {
-      const loc = world?.locations?.find(l => l.id === selectedLoc);
-      if (loc) {
-        const cx = (loc.x + (loc.w || 1) / 2) * TS;
-        const cy = (loc.y + (loc.h || 1) / 2) * TS;
-        this.cameraController?.zoomToLocation(cx, cy);
-        this._lastZoomedLocId = selectedLoc;
+      if (selectedLoc && selectedLoc !== this._lastZoomedLocId) {
+        const loc = world?.locations?.find(l => l.id === selectedLoc);
+        if (loc) {
+          const cx = (loc.x + (loc.w || 1) / 2) * TS;
+          const cy = (loc.y + (loc.h || 1) / 2) * TS;
+          this.cameraController?.zoomToLocation(cx, cy);
+          this._lastZoomedLocId = selectedLoc;
+        }
+      } else if (!selectedLoc) {
+        this._lastZoomedLocId = null;
       }
-    } else if (!selectedLoc) {
-      this._lastZoomedLocId = null;
-    }
 
-    if (selectedNpc) {
-      const npc = world?.npcs?.find(n => n.id === selectedNpc);
-      if (npc?.alive && store.followNpc !== selectedNpc) {
-        store.setFollowNpc(selectedNpc);
+      if (selectedNpc) {
+        const npc = world?.npcs?.find(n => n.id === selectedNpc);
+        if (npc?.alive && store.followNpc !== selectedNpc) {
+          store.setFollowNpc(selectedNpc);
+        }
+      } else if (store.followNpc) {
+        store.setFollowNpc(null);
       }
-    } else if (store.followNpc) {
-      store.setFollowNpc(null);
     }
 
     this.cameraController?.update(time, delta);
