@@ -61,6 +61,15 @@ curl -s -H "Authorization: Bearer $TOKEN" https://divinity.sh/api/agent/prompt
 
 ## Playtest Procedure
 
+### Phase 0: Repository Setup
+
+1. **Ensure you are on the main branch and up to date**:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+   This must be done before anything else to ensure you are working from the latest codebase.
+
 ### Phase 1: Setup
 
 1. **Health check** — Verify the server is up:
