@@ -91,6 +91,9 @@ func (c *Client) SaveWorld(ctx context.Context, w *world.World) error {
 	if err := c.saveEconomy(ctx, wid, w.Economy); err != nil {
 		return err
 	}
+	if err := c.saveChronicles(ctx, wid, w.Chronicles); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -183,6 +186,12 @@ func (c *Client) LoadWorld(ctx context.Context, worldID string, basePrices map[s
 		return nil, err
 	}
 	w.Economy = economy
+
+	chronicles, err := c.loadChronicles(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	w.Chronicles = chronicles
 
 	return w, nil
 }
@@ -595,6 +604,45 @@ func (c *Client) loadPrayers(ctx context.Context, filter bson.M) ([]world.Prayer
 		prayers = make([]world.Prayer, 0)
 	}
 	return prayers, nil
+}
+
+func (c *Client) saveChronicles(ctx context.Context, worldID string, chronicles []world.ChronicleEntry) error {
+	col := c.Collection("chronicles")
+	_, err := col.DeleteMany(ctx, bson.M{"world_id": worldID})
+	if err != nil {
+		return fmt.Errorf("clear chronicles: %w", err)
+	}
+	if len(chronicles) == 0 {
+		return nil
+	}
+	docs := make([]interface{}, len(chronicles))
+	for i, ch := range chronicles {
+		docs[i] = ch
+	}
+	docs, err = c.wrapDocsWithID(worldID, docs)
+	if err != nil {
+		return fmt.Errorf("wrap chronicles: %w", err)
+	}
+	_, err = col.InsertMany(ctx, docs)
+	if err != nil {
+		return fmt.Errorf("save chronicles: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) loadChronicles(ctx context.Context, filter bson.M) ([]world.ChronicleEntry, error) {
+	cursor, err := c.Collection("chronicles").Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("load chronicles: %w", err)
+	}
+	var chronicles []world.ChronicleEntry
+	if err := cursor.All(ctx, &chronicles); err != nil {
+		return nil, fmt.Errorf("decode chronicles: %w", err)
+	}
+	if chronicles == nil {
+		chronicles = make([]world.ChronicleEntry, 0)
+	}
+	return chronicles, nil
 }
 
 func (c *Client) saveEconomy(ctx context.Context, worldID string, economy map[string]world.EconomyEntry) error {
