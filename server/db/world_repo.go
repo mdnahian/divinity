@@ -643,6 +643,52 @@ func (c *Client) loadEconomy(ctx context.Context, filter bson.M) (map[string]wor
 	return economy, nil
 }
 
+func (c *Client) SaveTokens(ctx context.Context, worldID string, tokens map[string]string) error {
+	col := c.Collection(ColTokens)
+	_, err := col.DeleteMany(ctx, bson.M{"world_id": worldID})
+	if err != nil {
+		return fmt.Errorf("clear tokens: %w", err)
+	}
+	if len(tokens) == 0 {
+		return nil
+	}
+	var docs []interface{}
+	for token, npcID := range tokens {
+		docs = append(docs, bson.M{
+			"world_id": worldID,
+			"token":    token,
+			"npc_id":   npcID,
+		})
+	}
+	_, err = col.InsertMany(ctx, docs)
+	if err != nil {
+		return fmt.Errorf("insert tokens: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) LoadTokens(ctx context.Context, worldID string) (map[string]string, error) {
+	col := c.Collection(ColTokens)
+	cursor, err := col.Find(ctx, bson.M{"world_id": worldID})
+	if err != nil {
+		return nil, fmt.Errorf("find tokens: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	tokens := make(map[string]string)
+	for cursor.Next(ctx) {
+		var doc struct {
+			Token string `bson:"token"`
+			NPCID string `bson:"npc_id"`
+		}
+		if err := cursor.Decode(&doc); err != nil {
+			continue
+		}
+		tokens[doc.Token] = doc.NPCID
+	}
+	return tokens, nil
+}
+
 // wrapDocsWithID injects world_id into each document using bson marshal/unmarshal.
 func (c *Client) wrapDocsWithID(worldID string, items []interface{}) ([]interface{}, error) {
 	out := make([]interface{}, len(items))

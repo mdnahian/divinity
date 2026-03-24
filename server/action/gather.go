@@ -373,6 +373,20 @@ var gatherActions = []Action{
 	},
 	{
 		ID: "gather_clay", Label: "Gather clay near water", Category: "gather", BaseGameMinutes: 30,
+		Candidates: func(_ *npc.NPC, w *world.World) []*world.Location {
+			var locs []*world.Location
+			for _, l := range w.LocationsByType("dock") {
+				if l.Resources != nil && l.Resources["clay"] > 0 {
+					locs = append(locs, l)
+				}
+			}
+			for _, l := range w.LocationsByType("well") {
+				if l.Resources != nil && l.Resources["clay"] > 0 {
+					locs = append(locs, l)
+				}
+			}
+			return locs
+		},
 		Destination: func(n *npc.NPC, w *world.World) string {
 			// Check if current location has clay
 			cur := w.LocationByID(n.LocationID)

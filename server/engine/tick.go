@@ -206,6 +206,9 @@ func (e *Engine) tick(ctx context.Context) {
 			if err != nil {
 				log.Printf("[Engine] Full save failed: %v", err)
 			}
+			if err := e.DB.SaveTokens(ctx, w.ID, e.Tokens.All()); err != nil {
+				log.Printf("[Engine] Token save failed: %v", err)
+			}
 		} else {
 			// Incremental: upsert only dirty NPCs and locations
 			if len(e.dirtyNPCs) > 0 {

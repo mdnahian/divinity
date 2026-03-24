@@ -23,6 +23,7 @@ const (
 	ColRelationships  = "relationships"
 	ColSharedMemories = "shared_memories"
 	ColTrends         = "trends"
+	ColTokens         = "tokens"
 )
 
 func (c *Client) EnsureIndexes(ctx context.Context) error {
