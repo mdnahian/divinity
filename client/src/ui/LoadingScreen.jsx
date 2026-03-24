@@ -60,7 +60,7 @@ export default function LoadingScreen() {
 
         <div style={styles.emblemWrap}>
           <div style={styles.emblem}>
-            <div style={styles.emblemInner}>&#9764;</div>
+            <div style={styles.emblemInner}>☥</div>
           </div>
         </div>
 

@@ -46,6 +46,9 @@ func ValidateGodActions(argsJSON string, w *world.World) (errs []string, valid b
 		} `json:"actions"`
 	}
 	if err := json.Unmarshal([]byte(argsJSON), &params); err != nil {
+		if strings.Contains(err.Error(), "unexpected end of JSON input") {
+			return []string{"Your JSON was truncated (output too long). Keep 'analysis' under 1 sentence and minimize 'reason' fields. Retry god_act with shorter text."}, false
+		}
 		return []string{fmt.Sprintf("Invalid JSON: %v", err)}, false
 	}
 	aliveNames := make(map[string]string) // lower name -> original name
