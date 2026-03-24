@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playtest
+  namespace: divinity
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: playtest
+  template:
+    metadata:
+      labels:
+        app: playtest
+    spec:
+      containers:
+        - name: playtest
+          image: ghcr.io/mdnahian/divinity-playtest:latest
+          imagePullPolicy: Always
+          command: ["sleep", "infinity"]
+          env:
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: playtest-secrets
+                  key: GH_TOKEN
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
