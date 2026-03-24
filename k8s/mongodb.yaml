@@ -44,8 +44,9 @@ spec:
                 - --eval
                 - "db.runCommand('ping').ok"
                 - --quiet
-            initialDelaySeconds: 5
+            initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
             exec:
               command:
@@ -53,8 +54,10 @@ spec:
                 - --eval
                 - "db.runCommand('ping').ok"
                 - --quiet
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
           resources:
             requests:
               cpu: 250m

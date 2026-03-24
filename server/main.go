@@ -44,8 +44,12 @@ func main() {
 
 	dbClient, err := db.Connect(ctx, &cfg.Mongo)
 	if err != nil {
-		log.Printf("[Main] MongoDB unavailable (%v) — running without persistence", err)
-		dbClient = nil
+		if os.Getenv("ALLOW_MEMORY_ONLY") == "true" {
+			log.Printf("[Main] MongoDB unavailable (%v) — running without persistence (ALLOW_MEMORY_ONLY=true)", err)
+			dbClient = nil
+		} else {
+			log.Fatalf("[Main] MongoDB unavailable (%v) — exiting (set ALLOW_MEMORY_ONLY=true to run without persistence)", err)
+		}
 	} else {
 		if err := dbClient.EnsureIndexes(ctx); err != nil {
 			log.Printf("[Main] Index creation warning: %v", err)

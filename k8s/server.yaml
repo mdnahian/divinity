@@ -49,8 +49,8 @@ spec:
     spec:
       containers:
         - name: divinity-server
-          image: divinity-server:latest
-          imagePullPolicy: IfNotPresent
+          image: ghcr.io/mdnahian/divinity-server:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
