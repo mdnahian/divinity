@@ -72,8 +72,9 @@ func (a *Agent) Run(ctx context.Context) error {
 			time.Sleep(10 * time.Second)
 		}
 
-		// Random interval 0–300s to stagger 500+ agents and avoid LLM stampedes
-		time.Sleep(time.Duration(rand.Intn(301)) * time.Second)
+		// Random interval 15–30 minutes between calls to avoid LLM stampedes
+		sleepMin := 15*60 + rand.Intn(15*60+1)
+		time.Sleep(time.Duration(sleepMin) * time.Second)
 	}
 }
 

@@ -36,6 +36,13 @@ for i in $(seq 0 $((AGENT_COUNT - 1))); do
     cd "$dir"
     "$NPC_BIN" > "$log" 2>&1 &
     echo $! > "$pid_file"
+
+    # Stagger spawns: random 2–5 minutes between each agent
+    if [ "$i" -lt $((AGENT_COUNT - 1)) ]; then
+        delay=$((120 + RANDOM % 181))
+        echo "[spawn-agents] Agent $i launched, waiting ${delay}s before next..."
+        sleep "$delay"
+    fi
 done
 
 echo "[spawn-agents] All $AGENT_COUNT agents launched"
