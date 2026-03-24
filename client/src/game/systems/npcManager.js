@@ -6,6 +6,7 @@ import { MOUNT_OFFSET_Y } from './mountManager.js';
 const SEP_DIST = TS * 0.7;
 const SEP_FORCE = 0.15;
 const LERP_SPEED = 0.08;
+const REF_DT = 16.667;
 const CULL_PADDING = TS * 8; // pixels of padding around camera viewport for NPC culling
 const NPC_ZOOM_THRESHOLD = 0.45; // hide all NPC sprites below this zoom level
 
@@ -192,8 +193,9 @@ export class NpcManager {
     sprite.setInteractive({ useHandCursor: true });
     sprite.play(`${animPrefix}_idle_down`);
 
-    sprite.on('pointerdown', (pointer) => {
+    sprite.on('pointerup', (pointer) => {
       if (pointer.event && pointer.event.target !== this.scene.game.canvas) return;
+      if (this.scene.cameraController?.dragMoved) return;
       useGameStore.getState().selectNpc(npc.id);
       this._npcClickedId = npc.id;
     });
@@ -445,8 +447,10 @@ export class NpcManager {
         cx = targetX;
         cy = targetY;
       } else if (meta.prevX != null) {
-        cx = meta.prevX + (targetX - meta.prevX) * LERP_SPEED;
-        cy = meta.prevY + (targetY - meta.prevY) * LERP_SPEED;
+        const dtFactor = delta / REF_DT;
+        const lerpSpeed = 1 - Math.pow(1 - LERP_SPEED, dtFactor);
+        cx = meta.prevX + (targetX - meta.prevX) * lerpSpeed;
+        cy = meta.prevY + (targetY - meta.prevY) * lerpSpeed;
         if (Math.abs(targetX - cx) < 0.5 && Math.abs(targetY - cy) < 0.5) {
           cx = targetX;
           cy = targetY;

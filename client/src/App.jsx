@@ -69,6 +69,7 @@ export default function App() {
   const activePopup = useGameStore(s => s.activePopup);
   const isMobile = useGameStore(s => s.isMobile);
   const toggleChronicle = useGameStore(s => s.toggleChronicle);
+  const chronicleOpen = useGameStore(s => s.chronicleOpen);
 
   useEffect(() => {
     client.fetchInitialWorld();
@@ -126,8 +127,8 @@ export default function App() {
         {sceneReady && <EventLog />}
         {sceneReady && <StatusOverlay />}
         {sceneReady && isMobile && (
-          <button className="sdv-btn chronicle-toggle" onClick={toggleChronicle} title="Chronicle">
-            📖
+          <button className="chronicle-toggle" onClick={toggleChronicle} title="Chronicle">
+            <span className={`chronicle-arrow${chronicleOpen ? ' open' : ''}`}>›</span>
           </button>
         )}
         {sceneReady && <Minimap />}

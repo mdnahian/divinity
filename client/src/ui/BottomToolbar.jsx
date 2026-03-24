@@ -28,21 +28,52 @@ export default function BottomToolbar() {
   const selectNpc = useGameStore(s => s.selectNpc);
   const setFollowNpc = useGameStore(s => s.setFollowNpc);
   const isMobile = useGameStore(s => s.isMobile);
-  const toggleChronicle = useGameStore(s => s.toggleChronicle);
+  const toolbarOpen = useGameStore(s => s.toolbarOpen);
+  const toggleToolbar = useGameStore(s => s.toggleToolbar);
+  const closeToolbar = useGameStore(s => s.closeToolbar);
+
+  const allButtons = myAgentNpcId
+    ? [{ id: '_myagent', icon: '\u{1F4CD}', label: 'My Prophet' }, ...BUTTONS]
+    : BUTTONS;
+
+  const handleButtonClick = (btn) => {
+    if (btn.id === '_myagent') {
+      selectNpc(myAgentNpcId);
+      setFollowNpc(myAgentNpcId);
+    } else {
+      togglePopup(btn.id);
+    }
+    if (isMobile) closeToolbar();
+  };
+
+  if (isMobile) {
+    return (
+      <>
+        {toolbarOpen && <div className="mobile-toolbar-backdrop" onClick={closeToolbar} />}
+        <div className={`mobile-toolbar-panel sdv-frame${toolbarOpen ? ' mobile-toolbar-open' : ''}`} onPointerDown={e => e.stopPropagation()}>
+          <div className="mobile-toolbar-grid">
+            {allButtons.map(btn => (
+              <button
+                key={btn.id}
+                className={`sdv-btn mobile-toolbar-btn ${activePopup === btn.id ? 'active' : ''}`}
+                onClick={() => handleButtonClick(btn)}
+              >
+                <span className="mobile-toolbar-btn-icon">{btn.icon}</span>
+                <span className="mobile-toolbar-btn-label">{btn.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <button className="mobile-toolbar-tab" onClick={toggleToolbar}>
+          <span className={`mobile-toolbar-arrow${toolbarOpen ? ' open' : ''}`}>‹</span>
+        </button>
+      </>
+    );
+  }
 
   return (
     <div className="bottom-toolbar sdv-frame" onPointerDown={e => e.stopPropagation()}>
       <div className="toolbar-buttons">
-        {isMobile && (
-          <button
-            className="sdv-btn toolbar-btn"
-            onClick={toggleChronicle}
-            title="Chronicle"
-          >
-            <span className="toolbar-btn-icon">📜</span>
-            <span className="toolbar-btn-label">Chronicle</span>
-          </button>
-        )}
         {myAgentNpcId && (
           <button
             className="sdv-btn toolbar-btn my-agent-btn"
@@ -68,7 +99,7 @@ export default function BottomToolbar() {
       <div className="toolbar-divider" />
       <div className="toolbar-utility">
         <button
-          className={`sdv-btn toolbar-btn ${minimapVisible ? 'active' : ''}`}
+          className={`sdv-btn toolbar-btn minimap-toggle-btn ${minimapVisible ? 'active' : ''}`}
           onClick={toggleMinimap}
           title="Toggle Minimap (M)"
         >

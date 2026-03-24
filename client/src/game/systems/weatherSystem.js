@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { useGameStore } from '../../hooks/useGameStore.js';
 
 const WEATHERS = {
@@ -11,13 +12,32 @@ const WEATHERS = {
 };
 
 const DEFAULT_WEATHER = { particles: 0, snow: false };
+const MAX_PARTICLES = 800;
 
 export class WeatherSystem {
   constructor(scene) {
     this.scene = scene;
-    this.particles = [];
     this.currentWeather = '';
+    this._emitter = null;
     this._lastZoom = null;
+    this._ensureTextures();
+  }
+
+  _ensureTextures() {
+    if (!this.scene.textures.exists('rain_particle')) {
+      const g = this.scene.add.graphics();
+      g.fillStyle(0x8899bb, 0.6);
+      g.fillRect(0, 0, 2, 8);
+      g.generateTexture('rain_particle', 2, 8);
+      g.destroy();
+    }
+    if (!this.scene.textures.exists('snow_particle')) {
+      const g = this.scene.add.graphics();
+      g.fillStyle(0xeef4ff, 0.85);
+      g.fillRect(0, 0, 3, 3);
+      g.generateTexture('snow_particle', 3, 3);
+      g.destroy();
+    }
   }
 
   update(time, delta) {
@@ -32,75 +52,60 @@ export class WeatherSystem {
       this.currentWeather = weather;
     }
 
-    if (wData.particles > 0 && this.particles.length === 0) {
-      this._spawnParticles(wData);
+    if (wData.particles > 0 && !this._emitter) {
+      this._spawnEmitter(wData, cam);
     }
 
-    if (this._lastZoom !== null && Math.abs(cam.zoom - this._lastZoom) > 0.001 && this.particles.length > 0) {
-      this._redistributeParticles(cam);
-    }
-    this._lastZoom = cam.zoom;
+    if (this._emitter) {
+      // Update emitter zone to match camera viewport
+      const v = cam.worldView;
+      const invZoom = 1 / cam.zoom;
 
-    this._updateParticles(wData, delta, cam);
-  }
-
-  _spawnParticles(wData) {
-    const cam = this.scene.cameras.main;
-    const v = cam.worldView;
-    const count = Math.min(wData.particles, 800);
-    for (let i = 0; i < count; i++) {
-      const color = wData.snow ? 0xeef4ff : 0x8899bb;
-      const pw = wData.snow ? 3 : 2;
-      const ph = wData.snow ? 3 : 8;
-      const alpha = wData.snow ? 0.85 : 0.6;
-      const p = this.scene.add.rectangle(
-        v.x + Math.random() * v.width,
-        v.y + Math.random() * v.height,
-        pw, ph, color, alpha
-      );
-      p.setScrollFactor(1);
-      p.setDepth(101);
-      this.particles.push({
-        obj: p,
-        vx: (Math.random() - 0.3) * (wData.snow ? 18 : 50),
-        vy: wData.snow ? 25 + Math.random() * 30 : 250 + Math.random() * 200,
+      this._emitter.setPosition(v.x, v.y);
+      this._emitter.addEmitZone({
+        type: 'random',
+        source: new Phaser.Geom.Rectangle(0, -20, v.width, 10),
+        quantity: 1,
       });
-    }
-  }
-
-  _updateParticles(wData, delta, cam) {
-    const dt = delta / 1000;
-    const v = cam.worldView;
-    const left = v.x;
-    const top = v.y;
-    const right = v.x + v.width;
-    const bottom = v.y + v.height;
-    const invZoom = 1 / cam.zoom;
-
-    this.particles.forEach(p => {
-      p.obj.x += p.vx * invZoom * dt;
-      p.obj.y += p.vy * invZoom * dt;
-      p.obj.setScale(invZoom);
-
-      if (p.obj.x < left || p.obj.x > right ||
-          p.obj.y < top - 10 || p.obj.y > bottom) {
-        p.obj.x = left + Math.random() * v.width;
-        p.obj.y = top + Math.random() * v.height;
+      // Clear old zones, keep only the latest
+      if (this._emitter.emitZones && this._emitter.emitZones.length > 1) {
+        this._emitter.emitZones.splice(0, this._emitter.emitZones.length - 1);
       }
-    });
+
+      this._emitter.setParticleScale(invZoom);
+    }
+
+    this._lastZoom = cam.zoom;
   }
 
-  _redistributeParticles(cam) {
+  _spawnEmitter(wData, cam) {
     const v = cam.worldView;
-    this.particles.forEach(p => {
-      p.obj.x = v.x + Math.random() * v.width;
-      p.obj.y = v.y + Math.random() * v.height;
+    const isSnow = wData.snow;
+    const texKey = isSnow ? 'snow_particle' : 'rain_particle';
+    const count = Math.min(wData.particles, MAX_PARTICLES);
+
+    this._emitter = this.scene.add.particles(v.x, v.y, texKey, {
+      emitZone: {
+        type: 'random',
+        source: new Phaser.Geom.Rectangle(0, -20, v.width, 10),
+        quantity: 1,
+      },
+      lifespan: isSnow ? 5000 : 1800,
+      speedX: isSnow ? { min: -18, max: 18 } : { min: -30, max: 20 },
+      speedY: isSnow ? { min: 25, max: 55 } : { min: 250, max: 450 },
+      quantity: Math.max(1, Math.ceil(count / 50)),
+      frequency: 16,
+      maxParticles: count,
+      gravityY: isSnow ? 5 : 20,
     });
+    this._emitter.setDepth(101);
   }
 
   _clearParticles() {
-    this.particles.forEach(p => p.obj.destroy());
-    this.particles = [];
+    if (this._emitter) {
+      this._emitter.destroy();
+      this._emitter = null;
+    }
   }
 
   destroy() {

@@ -44,6 +44,7 @@ export class WorldScene extends Phaser.Scene {
     this._terrainData = null;
     this._lastZoomedNpcId = null;
     this._lastZoomedLocId = null;
+    this._lastLocFingerprint = null;
     this.chunkManager = null;
   }
 
@@ -137,10 +138,14 @@ export class WorldScene extends Phaser.Scene {
         useGameStore.getState().setSceneReady(true);
       }
 
-      this.chunkManager.clear();
-      this._drawLocationOverlays(world);
-      this._placeBuildings(world);
-      this._placeTrees(world);
+      const locFingerprint = this._locationFingerprint(world);
+      if (locFingerprint !== this._lastLocFingerprint) {
+        this._lastLocFingerprint = locFingerprint;
+        this.chunkManager.clear();
+        this._drawLocationOverlays(world);
+        this._placeBuildings(world);
+        this._placeTrees(world);
+      }
       this.chunkManager.updateMinimap(world);
     }
 
@@ -202,6 +207,11 @@ export class WorldScene extends Phaser.Scene {
 
     this.cameraController?.update(time, delta);
     this.weatherSystem?.update(time, delta);
+  }
+
+  _locationFingerprint(world) {
+    const locs = world.locations || [];
+    return locs.map(l => `${l.id}:${l.x},${l.y},${l.w},${l.h},${l.type}`).join('|');
   }
 
   _buildTerrainFromWorld(world) {
@@ -381,8 +391,9 @@ export class WorldScene extends Phaser.Scene {
       sprite.setVisible(false); // Start hidden; chunk manager will show visible ones
       sprite.setInteractive({ useHandCursor: true });
 
-      sprite.on('pointerdown', (pointer) => {
+      sprite.on('pointerup', (pointer) => {
         if (pointer.event && pointer.event.target !== this.game.canvas) return;
+        if (this.cameraController?.dragMoved) return;
         useGameStore.getState().selectLocation(b.locId);
       });
 

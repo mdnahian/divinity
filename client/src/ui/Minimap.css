@@ -34,16 +34,6 @@
 
 @media (max-width: 768px) {
   .minimap-wrap {
-    right: 8px;
-    bottom: 70px;
-  }
-
-  .minimap-canvas {
-    width: 100px;
-    height: 100px;
-  }
-
-  .minimap-label {
-    font-size: 8px;
+    display: none;
   }
 }

@@ -22,6 +22,7 @@ export const useGameStore = create((set, get) => ({
   activePopup: null,
   isMobile: false,
   chronicleOpen: false,
+  toolbarOpen: false,
 
   setWorld: (world) => set({ world, worldReady: true }),
   setWorldReady: (worldReady) => set({ worldReady }),
@@ -71,7 +72,9 @@ export const useGameStore = create((set, get) => ({
   setIsMobile: (isMobile) => set({ isMobile }),
   toggleChronicle: () => set((s) => ({ chronicleOpen: !s.chronicleOpen })),
   closeChronicle: () => set({ chronicleOpen: false }),
-  closeAllPanels: () => set({ inspectorOpen: false, activePopup: null, chronicleOpen: false }),
+  toggleToolbar: () => set((s) => ({ toolbarOpen: !s.toolbarOpen })),
+  closeToolbar: () => set({ toolbarOpen: false }),
+  closeAllPanels: () => set({ inspectorOpen: false, activePopup: null, chronicleOpen: false, toolbarOpen: false }),
 
   phaserScene: null,
   setPhaserScene: (scene) => set({ phaserScene: scene }),

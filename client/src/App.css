@@ -62,14 +62,33 @@
     align-items: center;
     justify-content: center;
     position: fixed;
-    top: 10px;
-    left: 10px;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
     z-index: 1000001;
-    width: 40px;
-    height: 40px;
-    padding: 0 !important;
-    font-size: 18px;
-    line-height: 1;
+    width: 20px;
+    height: 48px;
+    padding: 0;
+    border: none;
+    border-radius: 0 6px 6px 0;
+    background: rgba(232, 212, 168, 0.85);
+    border-right: 2px solid var(--sdv-parchment-deep);
+    border-top: 2px solid var(--sdv-parchment-deep);
+    border-bottom: 2px solid var(--sdv-parchment-deep);
+    cursor: pointer;
     pointer-events: auto;
+    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.15);
+  }
+
+  .chronicle-arrow {
+    font-size: 20px;
+    line-height: 1;
+    color: var(--sdv-wood);
+    transition: transform 0.25s ease;
+    display: inline-block;
+  }
+
+  .chronicle-arrow.open {
+    transform: rotate(180deg);
   }
 }
