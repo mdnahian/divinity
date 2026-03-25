@@ -21,10 +21,17 @@ var economyActions = []Action{
 			if len(markets) == 0 {
 				return false
 			}
-			if n.LocationID != markets[0].ID {
+			atMarket := false
+			for _, mkt := range markets {
+				if n.LocationID == mkt.ID {
+					atMarket = true
+					break
+				}
+			}
+			if !atMarket {
 				return false
 			}
-			others := w.NPCsAtLocation(markets[0].ID, n.ID)
+			others := w.NPCsAtLocation(n.LocationID, n.ID)
 			if len(others) == 0 {
 				return false
 			}

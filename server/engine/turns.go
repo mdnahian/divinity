@@ -294,8 +294,13 @@ func (e *Engine) SubmitExternalAction(n *npc.NPC, actionID, target, dialogue, go
 		return
 	}
 
-	n.ResumeActionID = ""
-	n.ResumeTicksLeft = 0
+	// Only clear resume state if we didn't just set it via force-interrupt above.
+	// When force-interrupting, the resume state was set in the block above and
+	// should be preserved so the NPC can resume the interrupted action later.
+	if !(force && n.ResumeActionID != "") {
+		n.ResumeActionID = ""
+		n.ResumeTicksLeft = 0
+	}
 
 	act := action.FindAction(actionID)
 	if act != nil && act.Conditions != nil && !act.Conditions(n, e.World) {
