@@ -63,7 +63,14 @@ curl -s -H "Authorization: Bearer $TOKEN" https://divinity.sh/api/agent/prompt
 
 ### Phase 0: Repository Setup
 
-1. **Ensure you are on the main branch and up to date**:
+1. **Configure git to use GH_TOKEN for authentication**:
+   ```bash
+   git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+   git config --global user.email "playtest@divinity.sh"
+   git config --global user.name "Divinity Playtest"
+   ```
+
+2. **Ensure you are on the main branch and up to date**:
    ```bash
    git checkout main
    git pull origin main
