@@ -11,6 +11,46 @@ import (
 	"github.com/divinity/core/world"
 )
 
+// destNearestMarketWithFood finds the nearest market that has an NPC with food
+// to sell. Falls back to the nearest market if none have food sellers.
+func destNearestMarketWithFood(n *npc.NPC, w *world.World) string {
+	markets := w.LocationsByType("market")
+	if len(markets) == 0 {
+		return ""
+	}
+	cur := w.LocationByID(n.LocationID)
+	bestID := ""
+	bestDist := math.MaxFloat64
+	for _, mkt := range markets {
+		sellers := w.NPCsAtLocation(mkt.ID, n.ID)
+		hasFood := false
+		for _, s := range sellers {
+			if s.HasItemOfCategory("food") != nil {
+				hasFood = true
+				break
+			}
+		}
+		if !hasFood {
+			continue
+		}
+		d := 0.0
+		if cur != nil {
+			dx := float64(mkt.X+mkt.W/2) - float64(cur.X+cur.W/2)
+			dy := float64(mkt.Y+mkt.H/2) - float64(cur.Y+cur.H/2)
+			d = math.Abs(dx) + math.Abs(dy)
+		}
+		if d < bestDist {
+			bestDist = d
+			bestID = mkt.ID
+		}
+	}
+	if bestID != "" {
+		return bestID
+	}
+	// Fallback to nearest market
+	return destNearestOfType("market")(n, w)
+}
+
 var economyActions = []Action{
 	{
 		ID: "trade", Label: "Trade goods with another NPC at the market", Category: "economy", BaseGameMinutes: 30, SkillKey: "merchant",
@@ -148,7 +188,7 @@ var economyActions = []Action{
 	},
 	{
 		ID: "buy_food", Label: "Buy food at the market", Category: "economy",
-		Destination: destNearestOfType("market"),
+		Destination: destNearestMarketWithFood,
 		Candidates:  candidatesOfType("market"),
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			if n.GoldCount() < 2 {

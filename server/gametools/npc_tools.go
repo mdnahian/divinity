@@ -119,8 +119,17 @@ func observeTool() *ToolDef {
 			var activeEvents []string
 			seen := make(map[string]bool)
 			for _, e := range w.ActiveEvents {
-				if e.TicksLeft > 0 && !seen[e.Name] {
-					seen[e.Name] = true
+				if e.TicksLeft <= 0 {
+					continue
+				}
+				// Dedup by title prefix (text before first ":") so events
+				// like "Strange omens in the sky: ..." don't appear twice.
+				key := e.Name
+				if idx := strings.Index(e.Name, ":"); idx > 0 {
+					key = e.Name[:idx]
+				}
+				if !seen[key] {
+					seen[key] = true
 					activeEvents = append(activeEvents, e.Name)
 				}
 			}
