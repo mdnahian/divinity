@@ -161,15 +161,13 @@ var craftActions = []Action{
 	{
 		ID: "tan_hide", Label: "Tan a hide into leather", Category: "craft", BaseGameMinutes: 45,
 		Destination: func(n *npc.NPC, w *world.World) string {
-			docks := w.LocationsByType("dock")
-			if len(docks) > 0 {
-				return docks[0].ID
+			// Check if current location is already a dock or well
+			cur := w.LocationByID(n.LocationID)
+			if cur != nil && (cur.Type == "dock" || cur.Type == "well") {
+				return n.LocationID
 			}
-			wells := w.LocationsByType("well")
-			if len(wells) > 0 {
-				return wells[0].ID
-			}
-			return ""
+			// Find nearest dock or well
+			return destNearestOfType("dock")(n, w)
 		},
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			if n.HasItem("hide") == nil {
@@ -211,11 +209,12 @@ var craftActions = []Action{
 			if wheat == nil || wheat.Qty < 2 {
 				return false
 			}
-			mills := w.LocationsByType("mill")
-			if len(mills) == 0 {
-				return false
+			for _, mill := range w.LocationsByType("mill") {
+				if w.IsWorkerAt(n, mill.ID) || mill.OwnerID == "" {
+					return true
+				}
 			}
-			return w.IsWorkerAt(n, mills[0].ID) || mills[0].OwnerID == ""
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
 			n.RemoveItem("wheat", 2)
@@ -325,11 +324,13 @@ var craftActions = []Action{
 			if n.Literacy <= 50 || n.Needs.Fatigue >= 75 {
 				return false
 			}
-			libs := w.LocationsByType("library")
-			if len(libs) > 0 && libs[0].OwnerID != "" {
-				return w.IsWorkerAt(n, libs[0].ID)
+			for _, lib := range w.LocationsByType("library") {
+				if lib.OwnerID == "" || w.IsWorkerAt(n, lib.ID) {
+					return true
+				}
 			}
-			return true
+			// No libraries exist — allow copying anywhere
+			return len(w.LocationsByType("library")) == 0
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
 			n.AddItem("book", 1)

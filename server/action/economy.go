@@ -17,14 +17,11 @@ var economyActions = []Action{
 		Destination: destNearestOfType("market"),
 		Candidates:  candidatesOfType("market"),
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			markets := w.LocationsByType("market")
-			if len(markets) == 0 {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || loc.Type != "market" {
 				return false
 			}
-			if n.LocationID != markets[0].ID {
-				return false
-			}
-			others := w.NPCsAtLocation(markets[0].ID, n.ID)
+			others := w.NPCsAtLocation(n.LocationID, n.ID)
 			if len(others) == 0 {
 				return false
 			}
