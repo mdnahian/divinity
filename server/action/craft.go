@@ -211,11 +211,12 @@ var craftActions = []Action{
 			if wheat == nil || wheat.Qty < 2 {
 				return false
 			}
-			mills := w.LocationsByType("mill")
-			if len(mills) == 0 {
-				return false
+			for _, mill := range w.LocationsByType("mill") {
+				if w.IsWorkerAt(n, mill.ID) || mill.OwnerID == "" {
+					return true
+				}
 			}
-			return w.IsWorkerAt(n, mills[0].ID) || mills[0].OwnerID == ""
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
 			n.RemoveItem("wheat", 2)
@@ -326,10 +327,16 @@ var craftActions = []Action{
 				return false
 			}
 			libs := w.LocationsByType("library")
-			if len(libs) > 0 && libs[0].OwnerID != "" {
-				return w.IsWorkerAt(n, libs[0].ID)
+			// If no libraries exist or any is unowned, allow scribing
+			if len(libs) == 0 {
+				return true
 			}
-			return true
+			for _, lib := range libs {
+				if lib.OwnerID == "" || w.IsWorkerAt(n, lib.ID) {
+					return true
+				}
+			}
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
 			n.AddItem("book", 1)

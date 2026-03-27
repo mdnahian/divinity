@@ -660,11 +660,12 @@ func (w *World) FindNPCByName(name string) *npc.NPC {
 }
 
 func IsWorkerAtType(n *npc.NPC, locType string, w *World) bool {
-	locs := w.LocationsByType(locType)
-	if len(locs) == 0 {
-		return false
+	for _, loc := range w.LocationsByType(locType) {
+		if w.IsWorkerAt(n, loc.ID) {
+			return true
+		}
 	}
-	return w.IsWorkerAt(n, locs[0].ID)
+	return false
 }
 
 func (w *World) ExpandToFit(x, y, tw, th int) {

@@ -109,7 +109,11 @@ var movementActions = []Action{
 			return n.HomeID
 		},
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			return n.HomeID != "" && w.IsNight() && n.LocationID != n.HomeID
+			if n.HomeID == "" || n.LocationID == n.HomeID {
+				return false
+			}
+			// Allow going home at night or when fatigued
+			return w.IsNight() || n.Needs.Fatigue >= 60
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
 			return "Headed home for the night."

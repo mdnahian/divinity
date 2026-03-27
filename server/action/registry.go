@@ -144,12 +144,12 @@ func ExecuteAction(actionID string, n *npc.NPC, w *world.World, mem memory.Store
 
 	result := action.Execute(n, target, w, mem)
 
-	inns := w.LocationsByType("inn")
-	if len(inns) > 0 {
-		inn := inns[0]
-		owner := w.GetLocationOwner(inn.ID)
-		if owner != nil && n.LocationID == inn.ID && !w.IsWorkerAt(n, inn.ID) && !InnFeeExempt[actionID] {
-			guests := len(w.NPCsAtLocation(inn.ID, ""))
+	// Check if NPC is at any inn (not just the first one)
+	loc := w.LocationByID(n.LocationID)
+	if loc != nil && loc.Type == "inn" && !InnFeeExempt[actionID] {
+		owner := w.GetLocationOwner(loc.ID)
+		if owner != nil && !w.IsWorkerAt(n, loc.ID) {
+			guests := len(w.NPCsAtLocation(loc.ID, ""))
 			fee := 3 + guests
 			if n.GoldCount() >= fee {
 				n.RemoveItem("gold", fee)

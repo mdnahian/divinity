@@ -72,34 +72,34 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 75 {
 				return false
 			}
-			forests := w.LocationsByType("forest")
-			if len(forests) == 0 {
-				return false
+			for _, f := range w.LocationsByType("forest") {
+				if f.Resources == nil || f.Resources["berries"] > 0 {
+					return true
+				}
 			}
-			f := forests[0]
-			return f.Resources == nil || f.Resources["berries"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			forests := w.LocationsByType("forest")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(forests) > 0 && forests[0].Resources != nil {
-				avail = forests[0].Resources["berries"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["berries"]
 			}
 			found := int(math.Min(float64(randInt(1, 3)), float64(avail)))
 			if found <= 0 {
 				return "The forest has no berries left to forage."
 			}
-			if len(forests) > 0 && forests[0].Resources != nil {
-				forests[0].Resources["berries"] = max(0, forests[0].Resources["berries"]-found)
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["berries"] = max(0, loc.Resources["berries"]-found)
 			}
 			n.AddItem("berries", found)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
 			if rand.Float64() < 0.15 {
 				herbs := 1
-				if len(forests) > 0 && forests[0].Resources != nil {
-					herbs = forests[0].Resources["herbs"]
+				if loc != nil && loc.Resources != nil {
+					herbs = loc.Resources["herbs"]
 					if herbs > 0 {
-						forests[0].Resources["herbs"]--
+						loc.Resources["herbs"]--
 					}
 				}
 				if herbs > 0 {
@@ -118,19 +118,19 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 65 || n.Stats.Strength <= 30 {
 				return false
 			}
-			forests := w.LocationsByType("forest")
-			if len(forests) == 0 {
-				return false
+			for _, f := range w.LocationsByType("forest") {
+				if f.Resources == nil || f.Resources["game"] > 0 {
+					return true
+				}
 			}
-			f := forests[0]
-			return f.Resources == nil || f.Resources["game"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			forests := w.LocationsByType("forest")
+			loc := w.LocationByID(n.LocationID)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+15, 0, 100)
 			avail := 99
-			if len(forests) > 0 && forests[0].Resources != nil {
-				avail = forests[0].Resources["game"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["game"]
 			}
 			if avail <= 0 {
 				return "No game left in the forest to hunt."
@@ -138,8 +138,8 @@ var gatherActions = []Action{
 			skill := float64(n.Stats.Agility+n.Stats.Strength) / 2
 			if rand.Float64()*100 < skill {
 				meat := int(math.Min(float64(randInt(1, 2)), float64(avail)))
-				if len(forests) > 0 && forests[0].Resources != nil {
-					forests[0].Resources["game"] = max(0, forests[0].Resources["game"]-meat)
+				if loc != nil && loc.Resources != nil {
+					loc.Resources["game"] = max(0, loc.Resources["game"]-meat)
 				}
 				n.AddItem("raw meat", meat)
 				n.GainSkill("hunter", 0.5)
@@ -161,17 +161,18 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 70 {
 				return false
 			}
-			farms := w.LocationsByType("farm")
-			if len(farms) == 0 {
-				return false
+			for _, f := range w.LocationsByType("farm") {
+				if f.Resources == nil || f.Resources["wheat"] > 0 {
+					return true
+				}
 			}
-			return farms[0].Resources == nil || farms[0].Resources["wheat"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			farms := w.LocationsByType("farm")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(farms) > 0 && farms[0].Resources != nil {
-				avail = farms[0].Resources["wheat"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["wheat"]
 			}
 			harvested := int(math.Min(float64(randInt(1, 4)), float64(avail)))
 			if harvested <= 0 {
@@ -181,8 +182,8 @@ var gatherActions = []Action{
 			if bonus > 0 {
 				harvested = int(math.Ceil(float64(harvested) * (1 + bonus)))
 			}
-			if len(farms) > 0 && farms[0].Resources != nil {
-				farms[0].Resources["wheat"] = max(0, farms[0].Resources["wheat"]-harvested)
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["wheat"] = max(0, loc.Resources["wheat"]-harvested)
 			}
 			n.AddItem("wheat", harvested)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+12, 0, 100)
@@ -198,17 +199,18 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 70 {
 				return false
 			}
-			docks := w.LocationsByType("dock")
-			if len(docks) == 0 {
-				return false
+			for _, d := range w.LocationsByType("dock") {
+				if d.Resources == nil || d.Resources["fish"] > 0 {
+					return true
+				}
 			}
-			return docks[0].Resources == nil || docks[0].Resources["fish"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			docks := w.LocationsByType("dock")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(docks) > 0 && docks[0].Resources != nil {
-				avail = docks[0].Resources["fish"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["fish"]
 			}
 			if avail <= 0 {
 				return "The waters are fished out — nothing to catch."
@@ -219,8 +221,8 @@ var gatherActions = []Action{
 				if bonus > 0 {
 					caught = int(math.Ceil(float64(caught) * (1 + bonus)))
 				}
-				if len(docks) > 0 && docks[0].Resources != nil {
-					docks[0].Resources["fish"] = max(0, docks[0].Resources["fish"]-caught)
+				if loc != nil && loc.Resources != nil {
+					loc.Resources["fish"] = max(0, loc.Resources["fish"]-caught)
 				}
 				n.AddItem("fish", caught)
 				n.GainSkill("fisher", 0.3)
@@ -239,24 +241,25 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 70 || n.Equipment.Weapon == nil || n.Equipment.Weapon.Name != "iron axe" {
 				return false
 			}
-			forests := w.LocationsByType("forest")
-			if len(forests) == 0 {
-				return false
+			for _, f := range w.LocationsByType("forest") {
+				if f.Resources == nil || f.Resources["wood"] > 0 {
+					return true
+				}
 			}
-			return forests[0].Resources == nil || forests[0].Resources["wood"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			forests := w.LocationsByType("forest")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(forests) > 0 && forests[0].Resources != nil {
-				avail = forests[0].Resources["wood"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["wood"]
 			}
 			qty := int(math.Min(float64(randInt(1, 3)), float64(avail)))
 			if qty <= 0 {
 				return "No trees left to chop in the forest."
 			}
-			if len(forests) > 0 && forests[0].Resources != nil {
-				forests[0].Resources["wood"] = max(0, forests[0].Resources["wood"]-qty)
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["wood"] = max(0, loc.Resources["wood"]-qty)
 			}
 			n.AddItem("logs", qty)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+12, 0, 100)
@@ -275,24 +278,25 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 70 || n.Equipment.Weapon == nil || n.Equipment.Weapon.Name != "pickaxe" {
 				return false
 			}
-			mines := w.LocationsByType("mine")
-			if len(mines) == 0 {
-				return false
+			for _, m := range w.LocationsByType("mine") {
+				if m.Resources == nil || m.Resources["stone"] > 0 {
+					return true
+				}
 			}
-			return mines[0].Resources == nil || mines[0].Resources["stone"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			mines := w.LocationsByType("mine")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(mines) > 0 && mines[0].Resources != nil {
-				avail = mines[0].Resources["stone"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["stone"]
 			}
 			qty := int(math.Min(float64(randInt(1, 2)), float64(avail)))
 			if qty <= 0 {
 				return "The mine has no stone left to extract."
 			}
-			if len(mines) > 0 && mines[0].Resources != nil {
-				mines[0].Resources["stone"] = max(0, mines[0].Resources["stone"]-qty)
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["stone"] = max(0, loc.Resources["stone"]-qty)
 			}
 			n.AddItem("stone", qty)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+14, 0, 100)
@@ -311,24 +315,25 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 65 || n.Equipment.Weapon == nil || n.Equipment.Weapon.Name != "pickaxe" {
 				return false
 			}
-			mines := w.LocationsByType("mine")
-			if len(mines) == 0 {
-				return false
+			for _, m := range w.LocationsByType("mine") {
+				if m.Resources == nil || m.Resources["iron_ore"] > 0 {
+					return true
+				}
 			}
-			return mines[0].Resources == nil || mines[0].Resources["iron_ore"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			mines := w.LocationsByType("mine")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(mines) > 0 && mines[0].Resources != nil {
-				avail = mines[0].Resources["iron_ore"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["iron_ore"]
 			}
 			qty := int(math.Min(float64(randInt(1, 2)), float64(avail)))
 			if qty <= 0 {
 				return "The mine has no iron ore left."
 			}
-			if len(mines) > 0 && mines[0].Resources != nil {
-				mines[0].Resources["iron_ore"] = max(0, mines[0].Resources["iron_ore"]-qty)
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["iron_ore"] = max(0, loc.Resources["iron_ore"]-qty)
 			}
 			n.AddItem("iron ore", qty)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+16, 0, 100)
@@ -347,24 +352,25 @@ var gatherActions = []Action{
 			if n.Needs.Fatigue >= 70 {
 				return false
 			}
-			farms := w.LocationsByType("farm")
-			if len(farms) == 0 {
-				return false
+			for _, f := range w.LocationsByType("farm") {
+				if f.Resources == nil || f.Resources["thatch"] > 0 {
+					return true
+				}
 			}
-			return farms[0].Resources == nil || farms[0].Resources["thatch"] > 0
+			return false
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
-			farms := w.LocationsByType("farm")
+			loc := w.LocationByID(n.LocationID)
 			avail := 99
-			if len(farms) > 0 && farms[0].Resources != nil {
-				avail = farms[0].Resources["thatch"]
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["thatch"]
 			}
 			qty := int(math.Min(float64(randInt(1, 3)), float64(avail)))
 			if qty <= 0 {
 				return "No thatch left in the fields to gather."
 			}
-			if len(farms) > 0 && farms[0].Resources != nil {
-				farms[0].Resources["thatch"] = max(0, farms[0].Resources["thatch"]-qty)
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["thatch"] = max(0, loc.Resources["thatch"]-qty)
 			}
 			n.AddItem("thatch", qty)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
