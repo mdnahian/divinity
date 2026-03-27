@@ -77,6 +77,20 @@ curl -s -H "Authorization: Bearer $TOKEN" https://divinity.sh/api/agent/prompt
    ```
    This must be done before anything else to ensure you are working from the latest codebase.
 
+3. **Check previous playtest PRs** — Review the status of recent playtest PRs and any comments/reviews:
+   ```bash
+   # List recent playtest PRs with their status
+   gh pr list --repo mdnahian/divinity --state all --json number,title,state,mergedAt --limit 10
+
+   # For each recent PR, check for comments and reviews
+   gh api repos/mdnahian/divinity/issues/<NUMBER>/comments
+   gh api repos/mdnahian/divinity/pulls/<NUMBER>/comments
+   gh api repos/mdnahian/divinity/pulls/<NUMBER>/reviews
+   ```
+   - Note which PRs have been **MERGED** (their fixes are now in main) vs **OPEN** or **CLOSED** (fixes not in main).
+   - Read any reviewer comments — they may contain feedback on fix approaches, requests for changes, or notes about bugs that should influence your playtest.
+   - Save this context to reference during Phase 2 (regression testing) and Phase 4 (code changes). Don't re-fix bugs that were already merged. If a reviewer suggested a different approach to a fix, use that approach instead.
+
 ### Phase 1: Setup
 
 1. **Health check** — Verify the server is up:
@@ -177,11 +191,18 @@ Compare against previous playtest findings. For each previously reported bug, no
 
 After documenting findings, attempt to fix/implement as many findings as possible:
 
-1. **Read the relevant source code** in `server/` and `client/` to understand the current implementation
-2. **Fix bugs** — find the root cause and make targeted fixes
-3. **Implement improvements** — balance changes, UX fixes, design issue resolutions
-4. **Add features** — if a new feature idea is well-scoped and clearly beneficial, implement it
-5. **Be conservative** — make clean, minimal changes. Don't refactor unrelated code. If a fix is too risky or complex, document it in the plan but don't attempt it.
+1. **Pull latest code** before making any changes:
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+   This ensures fixes are based on the latest codebase, not the version from ~2 hours ago when the playtest started.
+
+2. **Read the relevant source code** in `server/` and `client/` to understand the current implementation
+3. **Fix bugs** — find the root cause and make targeted fixes
+4. **Implement improvements** — balance changes, UX fixes, design issue resolutions
+5. **Add features** — if a new feature idea is well-scoped and clearly beneficial, implement it
+6. **Be conservative** — make clean, minimal changes. Don't refactor unrelated code. If a fix is too risky or complex, document it in the plan but don't attempt it.
 
 ### Phase 5: Create PR
 
