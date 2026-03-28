@@ -139,7 +139,7 @@ func ExecuteAction(actionID string, n *npc.NPC, w *world.World, mem memory.Store
 
 	var target *npc.NPC
 	if targetName != "" {
-		target = w.FindNPCByName(targetName)
+		target = w.FindNPCByNameAtLocation(targetName, n.LocationID)
 	}
 
 	result := action.Execute(n, target, w, mem)

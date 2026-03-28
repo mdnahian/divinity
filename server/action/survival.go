@@ -104,8 +104,11 @@ var survivalActions = []Action{
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
 			loc := w.LocationByID(n.LocationID)
+			// If the NPC is at their own home, always give free home sleep
+			// (even if home happens to be an inn)
+			atHome := n.HomeID != "" && n.LocationID == n.HomeID
 			atInn := loc != nil && loc.Type == "inn"
-			needsInn := n.HomeID == "" || (atInn && n.HomeID == n.LocationID)
+			needsInn := !atHome && (n.HomeID == "" || atInn)
 			// Rough sleep: no home and can't afford inn
 			if needsInn {
 				canAffordInn := false
