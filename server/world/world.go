@@ -659,6 +659,25 @@ func (w *World) FindNPCByName(name string) *npc.NPC {
 	return nil
 }
 
+// FindNPCByNameAtLocation finds an alive NPC by name, preferring NPCs at the
+// given location. This avoids resolving the wrong NPC when multiple share a
+// name across the world.
+func (w *World) FindNPCByNameAtLocation(name, locationID string) *npc.NPC {
+	// First pass: look for a match at the specified location
+	for _, n := range w.NPCs {
+		if n.Alive && n.Name == name && n.LocationID == locationID {
+			return n
+		}
+	}
+	// Fallback: global search (same as FindNPCByName)
+	for _, n := range w.NPCs {
+		if n.Alive && n.Name == name {
+			return n
+		}
+	}
+	return nil
+}
+
 func IsWorkerAtType(n *npc.NPC, locType string, w *World) bool {
 	for _, loc := range w.LocationsByType(locType) {
 		if w.IsWorkerAt(n, loc.ID) {

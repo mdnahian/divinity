@@ -293,7 +293,7 @@ func inspectPersonTool() *ToolDef {
 			n := ctx.NPC
 			w := ctx.World
 
-			target := w.FindNPCByName(params.Name)
+			target := w.FindNPCByNameAtLocation(params.Name, n.LocationID)
 			if target == nil {
 				return fmt.Sprintf("Nobody named %q exists.", params.Name), nil
 			}
@@ -608,7 +608,9 @@ func commitActionTool() *ToolDef {
 			}
 
 			if params.Target != "" {
-				target := w.FindNPCByName(params.Target)
+				// Prefer NPCs at the same location to avoid resolving the
+				// wrong NPC when multiple share a name.
+				target := w.FindNPCByNameAtLocation(params.Target, n.LocationID)
 				if target == nil {
 					return fmt.Sprintf("%s doesn't exist. Choose someone else.", params.Target), nil
 				}
