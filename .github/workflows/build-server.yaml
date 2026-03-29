@@ -39,10 +39,10 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/divinity-server:${{ steps.tag.outputs.TAG }}
             ghcr.io/${{ github.repository_owner }}/divinity-server:latest
 
-      - name: Restart deployment
+      - name: Delete divinity-server pod
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: kubectl -n divinity rollout restart deployment/divinity-server
+          script: kubectl -n divinity delete pod -l app=divinity-server
