@@ -491,12 +491,17 @@ func (w *World) DropItemsOnDeath(n *npc.NPC) {
 	count := int(math.Min(3, float64(len(n.Inventory))))
 	for i := 0; i < count; i++ {
 		it := n.Inventory[i]
+		dur := 80
+		// Gold dropped on the ground scatters and is harder to find over time
+		if it.Name == "gold" {
+			dur = 30
+		}
 		w.GroundItems = append(w.GroundItems, GroundItem{
 			Name:       it.Name,
 			Qty:        it.Qty,
 			LocationID: n.LocationID,
 			DroppedDay: w.GameDay,
-			Durability: 80,
+			Durability: dur,
 		})
 	}
 	if count > 0 {
@@ -526,9 +531,39 @@ func (w *World) PickUpGroundItem(n *npc.NPC, itemName string) *GroundItem {
 	return nil
 }
 
+// PartialPickUpGroundItem picks up a partial quantity from the first matching
+// ground item stack, leaving the remainder on the ground.
+func (w *World) PartialPickUpGroundItem(n *npc.NPC, itemName string, qty int) *GroundItem {
+	for i, g := range w.GroundItems {
+		if g.LocationID == n.LocationID && g.Name == itemName {
+			if qty >= g.Qty {
+				// Take the whole stack
+				return w.PickUpGroundItem(n, itemName)
+			}
+			// Take partial amount
+			n.AddItem(g.Name, qty)
+			picked := GroundItem{
+				Name:       g.Name,
+				Qty:        qty,
+				LocationID: g.LocationID,
+				DroppedDay: g.DroppedDay,
+				Durability: g.Durability,
+			}
+			w.GroundItems[i].Qty -= qty
+			return &picked
+		}
+	}
+	return nil
+}
+
 func (w *World) DecayGroundItems() {
 	for i := len(w.GroundItems) - 1; i >= 0; i-- {
-		w.GroundItems[i].Durability -= 3
+		decay := 3
+		// Gold decays faster on the ground (scavenged/lost coins degrade quickly)
+		if w.GroundItems[i].Name == "gold" {
+			decay = 15
+		}
+		w.GroundItems[i].Durability -= decay
 		if w.GroundItems[i].Durability <= 0 {
 			w.GroundItems = append(w.GroundItems[:i], w.GroundItems[i+1:]...)
 		}
