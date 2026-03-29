@@ -203,6 +203,7 @@ After documenting findings, attempt to fix/implement as many findings as possibl
 4. **Implement improvements** — balance changes, UX fixes, design issue resolutions
 5. **Add features** — if a new feature idea is well-scoped and clearly beneficial, implement it
 6. **Be conservative** — make clean, minimal changes. Don't refactor unrelated code. If a fix is too risky or complex, document it in the plan but don't attempt it.
+7. **Do NOT make formatting-only changes** — never reformat, restyle, or rewrite files beyond the lines you are fixing. Do not change whitespace, alignment, brace style, or struct literal formatting in code you aren't modifying for a bug fix. Rewriting a file with cosmetic changes risks accidentally deleting methods or functions, which has broken the build before.
 
 ### Phase 5: Create PR
 
