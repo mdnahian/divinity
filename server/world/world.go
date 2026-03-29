@@ -139,7 +139,7 @@ type World struct {
 }
 
 func NewWorld(basePrices map[string]int, minMult, maxMult float64) *World {
-	return &World{
+	return &World {
 		GridW: 11, GridH: 9,
 		MinGridW: 11, MinGridH: 9,
 		Locations:     make([]*Location, 0),
@@ -491,14 +491,14 @@ func (w *World) DropItemsOnDeath(n *npc.NPC) {
 	count := int(math.Min(3, float64(len(n.Inventory))))
 	for i := 0; i < count; i++ {
 		it := n.Inventory[i]
-		dur := 80
+		dur := 80.0
 		// Gold dropped on the ground scatters and is harder to find over time
 		if it.Name == "gold" {
-			dur = 30
+			dur = 30.0
 		}
-		w.GroundItems = append(w.GroundItems, GroundItem{
-			Name:       it.Name,
-			Qty:        it.Qty,
+		w.GroundItems = append(w.GroundItems, GroundItem {
+			Name: it.Name,
+			Qty: it.Qty,
 			LocationID: n.LocationID,
 			DroppedDay: w.GameDay,
 			Durability: dur,
@@ -542,9 +542,9 @@ func (w *World) PartialPickUpGroundItem(n *npc.NPC, itemName string, qty int) *G
 			}
 			// Take partial amount
 			n.AddItem(g.Name, qty)
-			picked := GroundItem{
-				Name:       g.Name,
-				Qty:        qty,
+			picked := GroundItem {
+				Name: g.Name,
+				Qty: qty,
 				LocationID: g.LocationID,
 				DroppedDay: g.DroppedDay,
 				Durability: g.Durability,
@@ -558,10 +558,10 @@ func (w *World) PartialPickUpGroundItem(n *npc.NPC, itemName string, qty int) *G
 
 func (w *World) DecayGroundItems() {
 	for i := len(w.GroundItems) - 1; i >= 0; i-- {
-		decay := 3
+		decay := 3.0
 		// Gold decays faster on the ground (scavenged/lost coins degrade quickly)
 		if w.GroundItems[i].Name == "gold" {
-			decay = 15
+			decay = 15.0
 		}
 		w.GroundItems[i].Durability -= decay
 		if w.GroundItems[i].Durability <= 0 {
@@ -592,11 +592,11 @@ func (w *World) RegenResources() {
 // RegenWellWater replenishes well water based on current weather.
 // Rain and storms fill wells; clear weather does not.
 func (w *World) RegenWellWater() {
-	regenMap := map[string]int{
-		"rain":   10,
-		"storm":  20,
+	regenMap := map[string]int {
+		"rain": 10,
+		"storm": 20,
 		"cloudy": 2,
-		"clear":  0,
+		"clear": 0,
 	}
 	regen := regenMap[w.Weather]
 	if regen == 0 {
@@ -746,7 +746,7 @@ func (w *World) CompleteConstruction(c *building.Construction) *Location {
 	bw, bh := 2, 1
 	w.ExpandToFit(x, y, bw, bh)
 
-	colors := map[string]string{
+	colors := map[string]string {
 		"shelter": "#cd853f", "market": "#b8860b", "workshop": "#cd853f",
 		"forge": "#d35400", "shrine": "#9370db", "school": "#4169e1", "library": "#4169e1",
 	}
@@ -755,22 +755,22 @@ func (w *World) CompleteConstruction(c *building.Construction) *Location {
 		color = "#888888"
 	}
 
-	loc := &Location{
-		ID:                 c.ID,
-		Name:               c.Name,
-		Type:               locType,
-		X:                  x,
-		Y:                  y,
-		W:                  bw,
-		H:                  bh,
-		Color:              color,
-		Description:        fmt.Sprintf("A newly built %s.", c.BuildingType),
-		Capacity:           CalcCapacity(locType, bw, bh),
-		BuildingID:         c.ID,
-		BuildingType:       c.BuildingType,
+	loc := &Location {
+		ID: c.ID,
+		Name: c.Name,
+		Type: locType,
+		X: x,
+		Y: y,
+		W: bw,
+		H: bh,
+		Color: color,
+		Description: fmt.Sprintf("A newly built %s.", c.BuildingType),
+		Capacity: CalcCapacity(locType, bw, bh),
+		BuildingID: c.ID,
+		BuildingType: c.BuildingType,
 		BuildingDurability: 100,
-		BuildingOwnerID:    c.OwnerID,
-		Tier:               bt.Tier,
+		BuildingOwnerID: c.OwnerID,
+		Tier: bt.Tier,
 	}
 	w.Locations = append(w.Locations, loc)
 	return loc
@@ -805,128 +805,4 @@ func (w *World) DecayBuildings() *Location {
 		}
 	}
 	return nil
-}
-
-// --- Territory helpers ---
-
-func (w *World) TerritoryByID(id string) *Territory {
-	for _, t := range w.Territories {
-		if t.ID == id {
-			return t
-		}
-	}
-	return nil
-}
-
-func (w *World) TerritoryForLocation(locID string) *Territory {
-	loc := w.LocationByID(locID)
-	if loc == nil {
-		return nil
-	}
-	if loc.TerritoryID != "" {
-		return w.TerritoryByID(loc.TerritoryID)
-	}
-	return ClosestTerritory(w.Territories, loc.X, loc.Y)
-}
-
-// --- Mount helpers ---
-
-func (w *World) MountByID(id string) *Mount {
-	for _, m := range w.Mounts {
-		if m.ID == id {
-			return m
-		}
-	}
-	return nil
-}
-
-func (w *World) MountByOwner(npcID string) *Mount {
-	for _, m := range w.Mounts {
-		if m.OwnerID == npcID && m.Alive {
-			return m
-		}
-	}
-	return nil
-}
-
-func (w *World) MountsAtLocation(locID string) []*Mount {
-	result := make([]*Mount, 0)
-	for _, m := range w.Mounts {
-		if m.LocationID == locID && m.Alive {
-			result = append(result, m)
-		}
-	}
-	return result
-}
-
-// --- Carriage helpers ---
-
-func (w *World) CarriageByID(id string) *Carriage {
-	for _, c := range w.Carriages {
-		if c.ID == id {
-			return c
-		}
-	}
-	return nil
-}
-
-func (w *World) CarriageByOwner(npcID string) *Carriage {
-	for _, c := range w.Carriages {
-		if c.OwnerID == npcID {
-			return c
-		}
-	}
-	return nil
-}
-
-// --- Dungeon helpers ---
-
-func (w *World) DungeonByID(id string) *Dungeon {
-	for _, d := range w.Dungeons {
-		if d.ID == id {
-			return d
-		}
-	}
-	return nil
-}
-
-func (w *World) DungeonAtLocation(locID string) *Dungeon {
-	for _, d := range w.Dungeons {
-		if d.LocationID == locID {
-			return d
-		}
-	}
-	return nil
-}
-
-// --- Mount tick helpers ---
-
-// DecayMounts reduces mount hunger and grooming daily, damages starving mounts.
-func (w *World) DecayMounts() {
-	for _, m := range w.Mounts {
-		if !m.Alive {
-			continue
-		}
-		m.Hunger -= 5
-		if m.Hunger < 0 {
-			m.Hunger = 0
-		}
-		m.Grooming -= 3
-		if m.Grooming < 0 {
-			m.Grooming = 0
-		}
-		if m.Hunger < 10 {
-			m.HP -= 5
-			if m.HP <= 0 {
-				m.HP = 0
-				m.Alive = false
-				// Unhitch any carriage
-				for _, c := range w.Carriages {
-					if c.HorseID == m.ID {
-						c.HorseID = ""
-					}
-				}
-			}
-		}
-	}
 }
