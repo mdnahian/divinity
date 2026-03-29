@@ -9,6 +9,7 @@ import (
 
 	"github.com/divinity/core/action"
 	"github.com/divinity/core/memory"
+	"github.com/divinity/core/world"
 )
 
 func NPCTools() []*ToolDef {
@@ -501,31 +502,60 @@ func listActionsTool() *ToolDef {
 				sb.WriteString(fmt.Sprintf("- \"resume\": Resume %s (~%d min remaining)\n", resumeLabel, resumeMins))
 			}
 
+			const maxCandidates = 10
+
 			for _, a := range actions {
 				_, mins := a.Duration(n, mpt)
 
 				if a.Candidates != nil {
 					candidates := a.Candidates(n, w)
 					if len(candidates) > 0 {
-						sb.WriteString(fmt.Sprintf("- \"%s\": %s [~%d min]\n", a.ID, a.Label, mins))
+						// Sort candidates by travel distance (current location first, then nearest)
+						type candidateWithDist struct {
+							loc      *world.Location
+							footMins int
+							here     bool
+						}
+						var cds []candidateWithDist
 						for _, c := range candidates {
 							if c.ID == n.LocationID {
-								sb.WriteString(fmt.Sprintf("    Location: \"%s\" (here)\n", c.Name))
+								cds = append(cds, candidateWithDist{loc: c, footMins: 0, here: true})
 							} else {
 								footTicks := w.TravelTicks(n.LocationID, c.ID, mpt, ctx.Config.Game.TravelMinutesPerUnit)
 								footMins := footTicks * mpt
-								mountedTicks, hasMnt, hasCarr := w.TravelTicksMounted(n.LocationID, c.ID, mpt, ctx.Config.Game.TravelMinutesPerUnit, n.ID)
+								cds = append(cds, candidateWithDist{loc: c, footMins: footMins})
+							}
+						}
+						sort.Slice(cds, func(i, j int) bool {
+							return cds[i].footMins < cds[j].footMins
+						})
+
+						// Limit to nearest maxCandidates locations
+						shown := cds
+						if len(shown) > maxCandidates {
+							shown = shown[:maxCandidates]
+						}
+
+						sb.WriteString(fmt.Sprintf("- \"%s\": %s [~%d min]\n", a.ID, a.Label, mins))
+						for _, cd := range shown {
+							if cd.here {
+								sb.WriteString(fmt.Sprintf("    Location: \"%s\" (here)\n", cd.loc.Name))
+							} else {
+								mountedTicks, hasMnt, hasCarr := w.TravelTicksMounted(n.LocationID, cd.loc.ID, mpt, ctx.Config.Game.TravelMinutesPerUnit, n.ID)
 								mountedMins := mountedTicks * mpt
 								if hasMnt {
 									label := "riding"
 									if hasCarr {
 										label = "by carriage"
 									}
-									sb.WriteString(fmt.Sprintf("    Location: \"%s\" (+%d min %s, %d min on foot)\n", c.Name, mountedMins, label, footMins))
+									sb.WriteString(fmt.Sprintf("    Location: \"%s\" (+%d min %s, %d min on foot)\n", cd.loc.Name, mountedMins, label, cd.footMins))
 								} else {
-									sb.WriteString(fmt.Sprintf("    Location: \"%s\" (+%d min travel)\n", c.Name, footMins))
+									sb.WriteString(fmt.Sprintf("    Location: \"%s\" (+%d min travel)\n", cd.loc.Name, cd.footMins))
 								}
 							}
+						}
+						if len(cds) > maxCandidates {
+							sb.WriteString(fmt.Sprintf("    ... and %d more distant locations\n", len(cds)-maxCandidates))
 						}
 						continue
 					}

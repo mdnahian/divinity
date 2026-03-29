@@ -479,8 +479,24 @@ var gatherActions = []Action{
 			if len(items) == 0 {
 				return "Searched around but found nothing."
 			}
+			const maxGoldPickup = 20
+			goldPickedUp := 0
 			var results []string
 			for _, item := range items {
+				if item.Name == "gold" {
+					if goldPickedUp >= maxGoldPickup {
+						continue // Skip additional gold stacks beyond cap
+					}
+					if item.Qty+goldPickedUp > maxGoldPickup {
+						// Partial pickup: take only up to the cap
+						take := maxGoldPickup - goldPickedUp
+						w.PartialPickUpGroundItem(n, item.Name, take)
+						goldPickedUp += take
+						results = append(results, fmt.Sprintf("%dx %s", take, item.Name))
+						continue
+					}
+					goldPickedUp += item.Qty
+				}
 				picked := w.PickUpGroundItem(n, item.Name)
 				if picked != nil {
 					results = append(results, fmt.Sprintf("%dx %s", picked.Qty, picked.Name))
