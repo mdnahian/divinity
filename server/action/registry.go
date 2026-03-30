@@ -140,6 +140,9 @@ func ExecuteAction(actionID string, n *npc.NPC, w *world.World, mem memory.Store
 	var target *npc.NPC
 	if targetName != "" {
 		target = w.FindNPCByNameAtLocation(targetName, n.LocationID)
+		if target != nil && target.ID == n.ID {
+			target = w.FindNPCByNameAtLocationExcluding(targetName, n.LocationID, n.ID)
+		}
 	}
 
 	result := action.Execute(n, target, w, mem)
