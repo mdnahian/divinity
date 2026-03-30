@@ -295,6 +295,10 @@ func inspectPersonTool() *ToolDef {
 			w := ctx.World
 
 			target := w.FindNPCByNameAtLocation(params.Name, n.LocationID)
+			if target != nil && target.ID == n.ID {
+				// Skip self; try to find another NPC with the same name at this location
+				target = w.FindNPCByNameAtLocationExcluding(params.Name, n.LocationID, n.ID)
+			}
 			if target == nil {
 				return fmt.Sprintf("Nobody named %q exists.", params.Name), nil
 			}
@@ -449,7 +453,7 @@ func checkLocationTool() *ToolDef {
 				}
 			}
 
-			npcsHere := w.NPCsAtLocation(params.LocationID, "")
+			npcsHere := w.NPCsAtLocation(loc.ID, "")
 			if len(npcsHere) > 0 {
 				var names []string
 				for _, p := range npcsHere {
@@ -458,13 +462,13 @@ func checkLocationTool() *ToolDef {
 				sb.WriteString(fmt.Sprintf("\nPeople there: %s", strings.Join(names, ", ")))
 			}
 
-			enemies := w.EnemiesAtLocation(params.LocationID)
+			enemies := w.EnemiesAtLocation(loc.ID)
 			if len(enemies) > 0 {
 				sb.WriteString(fmt.Sprintf("\nEnemies: %d present!", len(enemies)))
 			}
 
-			if params.LocationID != n.LocationID {
-				travelTicks := w.TravelTicks(n.LocationID, params.LocationID, mpt, ctx.Config.Game.TravelMinutesPerUnit)
+			if loc.ID != n.LocationID {
+				travelTicks := w.TravelTicks(n.LocationID, loc.ID, mpt, ctx.Config.Game.TravelMinutesPerUnit)
 				travelMins := travelTicks * mpt
 				sb.WriteString(fmt.Sprintf("\nTravel time from here: ~%d min", travelMins))
 			} else {
@@ -641,6 +645,10 @@ func commitActionTool() *ToolDef {
 				// Prefer NPCs at the same location to avoid resolving the
 				// wrong NPC when multiple share a name.
 				target := w.FindNPCByNameAtLocation(params.Target, n.LocationID)
+				if target != nil && target.ID == n.ID {
+					// Skip self; try to find another NPC with the same name
+					target = w.FindNPCByNameAtLocationExcluding(params.Target, n.LocationID, n.ID)
+				}
 				if target == nil {
 					return fmt.Sprintf("%s doesn't exist. Choose someone else.", params.Target), nil
 				}
