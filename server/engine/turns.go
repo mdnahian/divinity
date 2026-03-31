@@ -331,7 +331,9 @@ func (e *Engine) SubmitExternalAction(n *npc.NPC, actionID, target, dialogue, go
 			var mounted, inCarriage bool
 			travelTicks, mounted, inCarriage = e.World.TravelTicksMounted(n.LocationID, destID, mpt, e.Config.Game.TravelMinutesPerUnit, n.ID)
 			// Travel fatigue: walking=3.0, riding=1.0, carriage=0.0 per 10 ticks
-			if travelTicks > 0 {
+			// Skip travel fatigue for sleep/go_home — the NPC is heading to
+			// bed and shouldn't risk collapse from the journey.
+			if travelTicks > 0 && actionID != "sleep" && actionID != "go_home" {
 				fatiguePer10 := 3.0
 				if mounted {
 					fatiguePer10 = 1.0

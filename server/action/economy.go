@@ -94,6 +94,7 @@ var economyActions = []Action{
 				imp = 0.5
 			}
 			mem.Add(target.ID, memory.Entry{Text: fmt.Sprintf("Bought %s from %s for %d gold.", itemName, n.Name, price), Time: w.TimeString(), Importance: imp, Category: memory.CatEconomic, Tags: []string{n.ID, itemName}})
+			mem.Add(n.ID, memory.Entry{Text: fmt.Sprintf("Sold %s to %s for %d gold.", itemName, target.Name, price), Time: w.TimeString(), Importance: imp, Category: memory.CatEconomic, Tags: []string{target.ID, itemName}})
 			return fmt.Sprintf("Sold 1 %s to %s for %d gold (market price).", itemName, target.Name, price)
 		},
 	},

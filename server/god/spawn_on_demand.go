@@ -113,6 +113,32 @@ Respond with ONLY a JSON object:
 	}
 	newNPC := npc.NewNPC(tmpl, len(w.NPCs), w.GameDay, cfg)
 	newNPC.LocationID = startLocID
+
+	// Give profession-specific starting equipment (matches genesis.go)
+	switch parsed.Profession {
+	case "blacksmith":
+		newNPC.AddItem("iron ore", 4)
+		newNPC.AddItem("iron ingot", 2)
+	case "miner":
+		newNPC.AddItem("pickaxe", 1)
+		newNPC.EquipItem("pickaxe")
+	case "carpenter":
+		newNPC.AddItem("iron axe", 1)
+		newNPC.EquipItem("iron axe")
+		newNPC.AddItem("logs", 2)
+		newNPC.AddItem("rope", 2)
+	case "tailor":
+		newNPC.AddItem("leather", 2)
+		newNPC.AddItem("cloth", 2)
+	case "guard", "knight":
+		newNPC.AddItem("iron sword", 1)
+		newNPC.EquipItem("iron sword")
+		newNPC.AddItem("leather armor", 1)
+		newNPC.EquipItem("leather armor")
+	case "stablehand":
+		newNPC.AddItem("hay", 5)
+	}
+
 	w.NPCs = append(w.NPCs, newNPC)
 
 	log.Printf("[GOD] On-demand spawn: %s the %s, age %d", parsed.Name, parsed.Profession, parsed.Age)

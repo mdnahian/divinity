@@ -170,7 +170,7 @@ func (e *Engine) ProcessTier3NPCs(tier3 []*npc.NPC) {
 		if destID != "" && destID != n.LocationID {
 			// Initiate travel (mount-aware)
 			travelTicks, mounted, inCarriage := w.TravelTicksMounted(n.LocationID, destID, e.Config.Game.GameMinutesPerTick, e.Config.Game.TravelMinutesPerUnit, n.ID)
-			if travelTicks > 0 {
+			if travelTicks > 0 && actionID != "sleep" && actionID != "go_home" {
 				// Travel fatigue: walking=3.0, riding=1.0, carriage=0.0 per 10 ticks
 				fatiguePer10 := 3.0
 				if mounted {
