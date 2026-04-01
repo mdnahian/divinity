@@ -713,6 +713,22 @@ func (w *World) FindNPCByNameAtLocation(name, locationID string) *npc.NPC {
 	return nil
 }
 
+func (w *World) FindNPCByNameAtLocationExcluding(name, locationID, excludeID string) *npc.NPC {
+	// First pass: look for a match at the specified location, excluding one NPC
+	for _, n := range w.NPCs {
+		if n.Alive && n.Name == name && n.LocationID == locationID && n.ID != excludeID {
+			return n
+		}
+	}
+	// Fallback: global search excluding one NPC
+	for _, n := range w.NPCs {
+		if n.Alive && n.Name == name && n.ID != excludeID {
+			return n
+		}
+	}
+	return nil
+}
+
 func IsWorkerAtType(n *npc.NPC, locType string, w *World) bool {
 	for _, loc := range w.LocationsByType(locType) {
 		if w.IsWorkerAt(n, loc.ID) {

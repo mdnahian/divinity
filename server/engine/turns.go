@@ -92,6 +92,9 @@ func (e *Engine) processCompletionsAndInterrupts() {
 			// Update relationship sentiment store for social interactions
 			if targetName != "" && e.Relationships != nil {
 				target := w.FindNPCByNameAtLocation(targetName, n.LocationID)
+				if target != nil && target.ID == n.ID {
+					target = w.FindNPCByNameAtLocationExcluding(targetName, n.LocationID, n.ID)
+				}
 				if target != nil {
 					sentimentDelta := actionSentimentDelta(completedID)
 					if sentimentDelta != 0 {
