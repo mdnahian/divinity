@@ -355,8 +355,8 @@ func inspectPersonTool() *ToolDef {
 func recallMemoriesTool() *ToolDef {
 	return &ToolDef{
 		Name:        "recall_memories",
-		Description: "Search your recent memories. Optionally filter by a topic/keyword or category (combat, economic, social, employment, miracle, dream, education, faction).",
-		Parameters:  json.RawMessage(`{"type":"object","properties":{"topic":{"type":"string","description":"Optional keyword or topic to filter memories by"},"category":{"type":"string","description":"Optional category filter: combat, economic, social, employment, miracle, dream, education, faction"}}}`),
+		Description: "Search your recent memories. Optionally filter by a topic/keyword or category (routine, combat, economic, social, employment, miracle, dream, education, faction).",
+		Parameters:  json.RawMessage(`{"type":"object","properties":{"topic":{"type":"string","description":"Optional keyword or topic to filter memories by"},"category":{"type":"string","description":"Optional category filter: routine, combat, economic, social, employment, miracle, dream, education, faction"}}}`),
 		Handler: func(ctx *AgentContext, args json.RawMessage) (string, error) {
 			var params struct {
 				Topic    string `json:"topic"`

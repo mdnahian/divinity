@@ -72,7 +72,7 @@ func (e *Engine) processCompletionsAndInterrupts() {
 				Text:       memText,
 				Time:       w.TimeString(),
 				Importance: 0.1,
-				Category:   memory.CatRoutine,
+				Category:   actionMemoryCategory(completedID),
 			}, memory.EffectiveCap(n.Stats.MemoryCapacity))
 
 			displayDialogue := ""
@@ -375,6 +375,32 @@ func (e *Engine) SubmitExternalAction(n *npc.NPC, actionID, target, dialogue, go
 	n.LastDialogue = dialogue
 	n.CurrentGoal = goal
 	n.PendingReason = reason
+}
+
+// actionMemoryCategory maps an action ID to the appropriate memory category
+// so that recall_memories category filters return relevant results.
+func actionMemoryCategory(actionID string) string {
+	switch actionID {
+	case "attack_enemy", "flee_area", "party_attack", "fight":
+		return memory.CatCombat
+	case "trade", "buy_food", "buy_ale", "buy_supplies", "serve_customer",
+		"heal_patient", "offer_counsel", "farm", "fish", "hunt",
+		"mine_ore", "mine_stone", "chop_wood", "forage",
+		"gather_thatch", "gather_clay", "scavenge", "start_business":
+		return memory.CatEconomic
+	case "talk", "gift", "eat_together", "drink_together", "comfort",
+		"flirt", "work_together", "share_journal", "steal":
+		return memory.CatSocial
+	case "hire_employee", "fire_employee", "quit_job", "seek_employment":
+		return memory.CatEmployment
+	case "recruit_to_faction", "leave_faction", "kick_member",
+		"set_faction_goal", "set_faction_fee", "set_faction_cut":
+		return memory.CatFaction
+	case "teach", "teach_literacy", "teach_technique", "read_book", "copy_text":
+		return memory.CatEducation
+	default:
+		return memory.CatRoutine
+	}
 }
 
 // actionSentimentDelta returns the relationship sentiment change for an action.
