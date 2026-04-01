@@ -664,7 +664,12 @@ func (n *NPC) DecayNeeds(cfg *config.Config) {
 		n.Needs.Thirst = clampF(n.Needs.Thirst-d.Thirst, 0, 100)
 		n.Needs.Fatigue = clampF(n.Needs.Fatigue+d.Fatigue, 0, 100)
 	}
-	n.Needs.SocialNeed = clampF(n.Needs.SocialNeed+d.SocialNeed, 0, 100)
+	if sleeping {
+		// Halve social decay while sleeping — NPCs shouldn't wake up desperately lonely
+		n.Needs.SocialNeed = clampF(n.Needs.SocialNeed+d.SocialNeed*0.25, 0, 100)
+	} else {
+		n.Needs.SocialNeed = clampF(n.Needs.SocialNeed+d.SocialNeed, 0, 100)
+	}
 	// Happiness decays down over time; use probabilistic rounding since rate < 1
 	if d.Happiness > 0 && rand.Float64() < d.Happiness {
 		n.Happiness = clamp(n.Happiness-1, 0, 100)
