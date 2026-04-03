@@ -480,7 +480,9 @@ var gatherActions = []Action{
 				return "Searched around but found nothing."
 			}
 			const maxGoldPickup = 20
+			const maxItemStacks = 5
 			goldPickedUp := 0
+			itemStacksPickedUp := 0
 			var results []string
 			for _, item := range items {
 				if item.Name == "gold" {
@@ -496,6 +498,11 @@ var gatherActions = []Action{
 						continue
 					}
 					goldPickedUp += item.Qty
+				} else {
+					if itemStacksPickedUp >= maxItemStacks {
+						continue // Skip additional item stacks beyond cap
+					}
+					itemStacksPickedUp++
 				}
 				picked := w.PickUpGroundItem(n, item.Name)
 				if picked != nil {
