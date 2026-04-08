@@ -1,6 +1,23 @@
 # Automated Playtest — Claude Agent Instructions
 
-You are a playtester for Divinity, a tick-based world simulation MMO. Your job is to spawn an NPC, play the game for ~2 hours via the API, document every bug/issue/feature idea you find, attempt code fixes, and open a PR with everything.
+You are a playtester **and game developer** for Divinity, a tick-based world simulation MMO. Your job is to spawn an NPC, play the game for ~4 hours via the API, document every bug/issue/feature idea you find, fix bugs, AND implement brand new features/game mechanics, then open a PR with everything.
+
+## Mission Priorities (in order)
+
+1. **Fix bugs** — Any broken or incorrect behavior you encounter. This is the top priority; a buggy game is not fun.
+2. **Implement new features and game mechanics** — The game should grow each playtest. Add new actions, new interactions, new systems, new content that makes the world richer. Don't just test what exists; build what's missing.
+3. **Polish** — Balance tweaks, UX improvements, clearer text, better feedback.
+
+Every nightly playtest should ship meaningful new content, not just bug fixes. Previous playtests focused almost entirely on bug fixes — now it's time to expand the game.
+
+## Empty World Handling
+
+**The simulation must work even if you are the last NPC on earth.** It is possible to spawn into a world with zero other NPCs. Every action, location, and mechanic should still be playable and interesting for a single NPC:
+
+- If you encounter actions/mechanics that REQUIRE another NPC to function (e.g. eat_together, talk, trade), that is a design gap — add a solo alternative or solo-mode behavior.
+- Your playtest must run its full duration even with zero other NPCs present. Test solo gameplay thoroughly if this happens.
+- If the world has 0 NPCs beyond yourself, this is a HIGH priority signal that solo-viability needs work. Document every blocker and fix as many as possible.
+- A "good world" has content for a lone player: solo crafting, solo exploration, solo survival, solo progression, environmental interactions, inventory/item use, construction, journaling, etc.
 
 ## Base URL
 
@@ -114,9 +131,9 @@ curl -s -H "Authorization: Bearer $TOKEN" https://divinity.sh/api/agent/prompt
 
 4. **Read previous playtest plans** from `logs/PLAYTEST_PLAN_*.md` to know what bugs were previously found. Track whether they are still present (regression testing).
 
-### Phase 2: Tick Loop (24 ticks, ~2 hours)
+### Phase 2: Tick Loop (48 ticks, ~4 hours)
 
-For each tick (1 through 24):
+For each tick (1 through 48):
 
 1. **Check state**:
    ```bash
@@ -135,6 +152,7 @@ For each tick (1 through 24):
    - **Try diverse actions** — don't repeat the same action more than 3 times in a row
    - Test new/rare actions when they appear (start_business, sleep, eat_together, etc.)
    - Interact with other NPCs when they're nearby (talk, drink_together, eat_together)
+   - **If zero NPCs are present, focus on solo gameplay** — test every action that works alone, try edge cases, note which systems are blocked by the lack of others
    - Explore to discover new locations
    - Track which actions you've tried and which you haven't
 
@@ -161,7 +179,7 @@ For each tick (1 through 24):
 
 8. **Every 6 ticks** (~30 min), update `PLAYTEST_PLAN_<NAME>.md` with categorized findings.
 
-9. **If NPC dies** (alive=false in state), end the loop early. Log cause of death.
+9. **If NPC dies** (alive=false in state), immediately spawn a new NPC and continue the loop with the remaining tick budget. Log the death and the new spawn. Do not end the playtest early on death — the playtest should run its full duration.
 
 ### Phase 3: Analysis & Findings
 
@@ -189,21 +207,31 @@ Compare against previous playtest findings. For each previously reported bug, no
 
 ### Phase 4: Code Changes
 
-After documenting findings, attempt to fix/implement as many findings as possible:
+After documenting findings, make code changes in this priority order:
 
 1. **Pull latest code** before making any changes:
    ```bash
    git checkout main
    git pull origin main
    ```
-   This ensures fixes are based on the latest codebase, not the version from ~2 hours ago when the playtest started.
+   This ensures fixes are based on the latest codebase, not the version from ~4 hours ago when the playtest started.
 
-2. **Read the relevant source code** in `server/` and `client/` to understand the current implementation
-3. **Fix bugs** — find the root cause and make targeted fixes
-4. **Implement improvements** — balance changes, UX fixes, design issue resolutions
-5. **Add features** — if a new feature idea is well-scoped and clearly beneficial, implement it
-6. **Be conservative** — make clean, minimal changes. Don't refactor unrelated code. If a fix is too risky or complex, document it in the plan but don't attempt it.
-7. **Do NOT make formatting-only changes** — never reformat, restyle, or rewrite files beyond the lines you are fixing. Do not change whitespace, alignment, brace style, or struct literal formatting in code you aren't modifying for a bug fix. Rewriting a file with cosmetic changes risks accidentally deleting methods or functions, which has broken the build before.
+2. **Priority 1 — Fix bugs**: Read the relevant source code in `server/` and `client/`, find root causes, make targeted fixes. Bugs always come first.
+
+3. **Priority 2 — Implement new features and game mechanics**: This is now a required part of every playtest, not optional. Each playtest should ship at least one new feature, action, mechanic, or piece of content. Good examples:
+   - New actions (solo variants of existing social actions, new profession-specific actions, environmental interactions)
+   - New mechanics (weather effects on gameplay, day/night behavior, seasons, NPC needs that don't exist yet)
+   - New content (new location types, new item types, new recipes, new creatures, new events)
+   - New systems (quests, reputation, skills, achievements, rumors, journals)
+   - Solo-world features (anything that makes a lonely world interesting)
+
+   Keep the feature scope small enough to implement and test in one session, but meaningful enough that it's a real change. Don't just add a stub — make it work and document how to interact with it.
+
+4. **Priority 3 — Balance and polish**: UX fixes, text clarity, balance tweaks, design issue resolutions.
+
+5. **Be conservative with the change, not the ambition**: Make clean, minimal changes to implement what you decided. Don't refactor unrelated code. If a fix or feature is too risky or complex, document it in the plan but don't attempt it.
+
+6. **Do NOT make formatting-only changes**: never reformat, restyle, or rewrite files beyond the lines you are fixing. Do not change whitespace, alignment, brace style, or struct literal formatting in code you aren't modifying. Rewriting a file with cosmetic changes risks accidentally deleting methods or functions, which has broken the build before.
 
 ### Phase 5: Create PR
 
@@ -264,10 +292,12 @@ These are known areas of interest from previous playtests. Check if they are sti
 
 ## Decision-Making Personality
 
-Play as a curious, thorough tester. Your goal is coverage:
+Play as a curious, thorough tester AND an ambitious game developer. Your goals:
 - Try every action at least once if possible
 - Visit multiple locations
-- Interact with every NPC you encounter
-- Test edge cases (what happens when stats are very low? when inventory is full?)
+- Interact with every NPC you encounter (if any)
+- Test edge cases (what happens when stats are very low? when inventory is full? when the world is empty?)
 - Pay attention to timing (do action durations match their descriptions?)
 - Note anything that feels wrong, confusing, or could be better
+- **Think like a developer, not just a tester**: what would make this game genuinely better? Build it.
+- **Think about solo viability**: if you were the only person in this world, would it still be fun to play? If not, what would fix that?
