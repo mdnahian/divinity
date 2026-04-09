@@ -107,8 +107,39 @@
 - fish action failed (skill-based) — farmer caught fish but forager didn't. Interesting
 - Dock is safe (no enemies). Good gathering hub.
 
-### Final Session Stats (before sleep)
-- **Mara:** HP 100, hunger 98, thirst 96, fatigue 74, social 46, happiness 63, stress 30
-- **Total unique actions tested this session:** scavenge, eat, drink, sleep, farm, gather_thatch, gather_clay, fish, craft_pottery, explore, travel, start_business, flee_area, check_location, recall_memories, observe, check_self, list_actions
-- **Total unique locations visited:** Golden Meadow Market, Holy Stone Shrine, Sunflower Farm, Garden Well, Rose Garden, The Gilded Inn, East Side Market, Scribe's Library, Dock, Sunrise Stable (DEATH)
+### Ticks 33-44 (Mara continued)
+- **T33** Sleep completed. Back at The Gilded Inn. Fatigue 7.
+- **T34** Scavenge at Gilded Inn (5 stacks, 20 gold). PR #12 confirmed yet again.
+- **T35** Craft_pottery → ceramic.
+- **T36** Explore → random location. **Wandered to Oakhaven Farm — attacked by dire wolf!** HP 100→90 in transit.
+- **T37** Emergency travel → Garden Well (escaped). Took 5 more damage in the travel but survived (HP 88→ 91 with regen).
+- **T38** Drink at Garden Well.
+- **T39** Gather_clay at Garden Well.
+- **T40** Travel → Golden Meadow Market.
+- **T41** Scavenge at Golden Meadow Market.
+- **T42** Farm at Sunflower Farm (+1 farmer skill).
+- **T43** Gather_thatch at Sunflower Farm.
+- **T44** Farm at Sunflower Farm again (skill grind).
+- **T45** Sleep committed at fatigue 80 (final, wrapping playtest).
+
+### Final Session Stats
+- **Mara final:** HP 100, hunger 91, thirst 96, fatigue 80, **social 2**, happiness 50, stress 43, mood **exhausted**
+- **Social crash confirmed AGAIN**: 68 → 2 over ~20 actions solo. The `reflect` feature I'm shipping is directly validated by this data.
+- **Total unique actions tested:** scavenge, eat, drink, sleep, farm, gather_thatch, gather_clay, fish, craft_pottery, explore, travel, start_business, flee_area, check_location, recall_memories, observe, check_self, list_actions, attack_enemy (listed)
+- **Total unique locations visited:** Golden Meadow Market, Holy Stone Shrine, Sunflower Farm, Garden Well, Rose Garden, The Gilded Inn, East Side Market, Scribe's Library, Dock, Sunrise Stable (DEATH), Oakhaven Farm (NEAR-DEATH for Mara)
+- **Total playtest actions committed:** 44 (24 Eldric + 20 Mara)
+
+### Final regression summary
+- PR #12 scavenge cap: CONFIRMED working across 6+ scavenge attempts
+- PR #11 recall_memories category: CONFIRMED routine + economic
+- PR #10 SpawnOnDemand profession equipment: CONFIRMED (both NPCs had profession skill)
+- PR #9 check_location: CONFIRMED — shows enemies at dangerous locations
+- PR #7 list_actions location limit: CONFIRMED — 10 + "...and N more"
+- PR #6 home-inn free sleep: CONFIRMED — "Slept at home" at assigned inn
+- PR #10 social decay during sleep: PARTIALLY CONFIRMED — still decays but possibly at lower rate
+
+### FEATURES SHIPPED IN PR #13
+1. **`meditate`** — solo shrine action, no stat requirements, reduces stress/fatigue/social need, boosts happiness
+2. **`reflect`** — solo anywhere action when lonely (social > 30), reduces social need/stress, boosts happiness
+3. **Sleep text fallback fix** — generic "Rested and slept" instead of misleading "Slept at home"
 
