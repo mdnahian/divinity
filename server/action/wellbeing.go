@@ -157,6 +157,50 @@ var wellbeingActions = []Action{
 		},
 	},
 	{
+		ID: "meditate", Label: "Meditate at the shrine (free, no requirements)", Category: "wellbeing", BaseGameMinutes: 30,
+		Destination: destNearestOfType("shrine"),
+		Candidates:  candidatesOfType("shrine"),
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			// Available to anyone — no spiritual sensitivity or desperation required.
+			// Blocked only by repeat and very low fatigue (already well-rested).
+			return n.LastAction != "meditate" && n.LastAction != "pray"
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			n.Stress = clamp(n.Stress-5, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue-10, 0, 100)
+			n.Happiness = clamp(n.Happiness+3, 0, 100)
+			n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-8, 0, 100)
+			mem.Add(n.ID, memory.Entry{
+				Text:       "Spent time in quiet meditation at the shrine. Felt a sense of peace.",
+				Time:       w.TimeString(),
+				Importance: 0.3,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"meditate", "shrine"},
+			})
+			return "Meditated at the shrine (-5 stress, -10 fatigue, +3 happiness, -8 social need)."
+		},
+	},
+	{
+		ID: "reflect", Label: "Sit quietly and reflect on life", Category: "wellbeing", BaseGameMinutes: 15,
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			// Available when lonely (high social need) and not repeating.
+			return n.Needs.SocialNeed > 30 && n.LastAction != "reflect"
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-15, 0, 100)
+			n.Happiness = clamp(n.Happiness+2, 0, 100)
+			n.Stress = clamp(n.Stress-3, 0, 100)
+			mem.Add(n.ID, memory.Entry{
+				Text:       "Took a moment to sit quietly and reflect. The solitude felt less heavy.",
+				Time:       w.TimeString(),
+				Importance: 0.2,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"reflect", "solo"},
+			})
+			return "Sat quietly and reflected on life (-15 social need, +2 happiness, -3 stress)."
+		},
+	},
+	{
 		ID: "read_book", Label: "Read a written work", Category: "wellbeing", BaseGameMinutes: 30,
 		Conditions: func(n *npc.NPC, _ *world.World) bool {
 			if n.LastAction == "read_book" || n.LastAction == "write_journal" {
