@@ -42,6 +42,7 @@ var Registry = map[string]ItemDef{
 	"pretty stone": {Weight: 0.2, Stackable: true, DurabilityBase: 999, DecayRate: 0, Category: "curiosity"},
 	"old coin":     {Weight: 0.05, Stackable: true, DurabilityBase: 999, DecayRate: 0, Category: "curiosity"},
 	"carved bone":  {Weight: 0.1, Stackable: true, DurabilityBase: 100, DecayRate: 0, Category: "curiosity"},
+	"carved figurine": {Weight: 0.1, Stackable: true, DurabilityBase: 100, DecayRate: 0, Category: "curiosity"},
 
 	// Weapons
 	"iron sword":    {Weight: 3.0, Stackable: false, Slot: "weapon", DurabilityBase: 100, DecayRate: 0.5, Effects: map[string]float64{"weapon_bonus": 15}},

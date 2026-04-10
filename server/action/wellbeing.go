@@ -189,4 +189,135 @@ var wellbeingActions = []Action{
 			return fmt.Sprintf("Read a %s (+%d literacy, +happiness).", itemName, litGain)
 		},
 	},
+	// meditate: a solo-friendly shrine action. Works for ANY NPC (not gated
+	// on desperation like `pray`). Restores stress, improves spiritual
+	// sensitivity over time, and gives mild happiness. Encourages shrine use
+	// during normal play and fills the gap at shrines with no other actions.
+	{
+		ID: "meditate", Label: "Meditate quietly at the shrine (free, solo-friendly)", Category: "wellbeing", BaseGameMinutes: 30,
+		Destination: destNearestOfType("shrine"),
+		Candidates:  candidatesOfType("shrine"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.LastAction == "meditate" {
+				return false
+			}
+			return len(w.LocationsByType("shrine")) > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || loc.Type != "shrine" {
+				return "No shrine to meditate at."
+			}
+			n.Stress = clamp(n.Stress-12, 0, 100)
+			n.Happiness = clamp(n.Happiness+4, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue-3, 0, 100)
+			// Slowly awaken spiritual aptitude through practice
+			if n.Stats.SpiritualSensitivity < 100 {
+				n.Stats.SpiritualSensitivity = clamp(n.Stats.SpiritualSensitivity+1, 0, 100)
+			}
+			mem.Add(n.ID, memory.Entry{
+				Text:       "I meditated in silence at the shrine. My mind felt clearer.",
+				Time:       w.TimeString(),
+				Importance: 0.4,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"shrine", "meditate"},
+			})
+			return "Meditated quietly at the shrine (-12 stress, +4 happiness, -3 fatigue, +spiritual insight)."
+		},
+	},
+	// tend_shrine: a solo-friendly shrine action that rewards pro-social
+	// behavior (reputation) for ANY NPC. Uses water from a well if carried
+	// otherwise it's a symbolic tending. Encourages worship/routine loops.
+	{
+		ID: "tend_shrine", Label: "Tend and clean the shrine (free, gains reputation)", Category: "wellbeing", BaseGameMinutes: 30,
+		Destination: destNearestOfType("shrine"),
+		Candidates:  candidatesOfType("shrine"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.LastAction == "tend_shrine" || n.Needs.Fatigue >= 80 {
+				return false
+			}
+			return len(w.LocationsByType("shrine")) > 0
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || loc.Type != "shrine" {
+				return "No shrine to tend."
+			}
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+6, 0, 100)
+			n.Happiness = clamp(n.Happiness+3, 0, 100)
+			n.Stats.Reputation = clamp(n.Stats.Reputation+2, 0, 100)
+			// If the shrine has a dilapidated building, restore a little
+			// durability — thematically the NPC is maintaining the site.
+			restored := ""
+			if loc.BuildingDurability > 0 && loc.BuildingDurability < 100 {
+				loc.BuildingDurability = math.Min(100, loc.BuildingDurability+5)
+				restored = fmt.Sprintf(", shrine durability now %.0f", loc.BuildingDurability)
+			}
+			// Offer an item if the NPC has one to give (curiosity, flowers, clay, etc.)
+			offeringText := ""
+			for _, pref := range []string{"pretty stone", "carved figurine", "carved bone", "old coin", "berries", "herbs"} {
+				if n.HasItem(pref) != nil {
+					n.RemoveItem(pref, 1)
+					n.Stats.Reputation = clamp(n.Stats.Reputation+1, 0, 100)
+					n.Stats.SpiritualSensitivity = clamp(n.Stats.SpiritualSensitivity+1, 0, 100)
+					offeringText = fmt.Sprintf(" Left an offering of %s at the altar.", pref)
+					break
+				}
+			}
+			mem.Add(n.ID, memory.Entry{
+				Text:       "I tended to the shrine — a small, quiet act of devotion.",
+				Time:       w.TimeString(),
+				Importance: 0.3,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"shrine", "tend"},
+			})
+			return fmt.Sprintf("Tended the shrine%s (+3 happiness, +2 reputation).%s", restored, offeringText)
+		},
+	},
+	// stargaze: night-only solo action. Available anywhere outdoors (not
+	// inside buildings like inns, palaces, mines). Free, restores stress
+	// and boosts happiness — perfect for empty worlds with no socials.
+	{
+		ID: "stargaze", Label: "Gaze at the night sky (night-only, free)", Category: "wellbeing", BaseGameMinutes: 30,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.LastAction == "stargaze" || n.Needs.Fatigue >= 85 {
+				return false
+			}
+			if !w.IsNight() {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return false
+			}
+			// Must be at an outdoor-type location
+			outdoor := map[string]bool{
+				"market": true, "farm": true, "forest": true, "dock": true,
+				"well": true, "shrine": true, "stable": true, "garden": true,
+				"cave": true, "mine": true, "desert": true, "swamp": true,
+				"tundra": true, "barracks": true,
+			}
+			return outdoor[loc.Type]
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			n.Stress = clamp(n.Stress-8, 0, 100)
+			n.Happiness = clamp(n.Happiness+6, 0, 100)
+			// Rare discovery: a shooting star grants a small bit of wisdom
+			wisdomText := ""
+			if rand.Float64() < 0.12 {
+				if n.Stats.Wisdom < 100 {
+					n.Stats.Wisdom = clamp(n.Stats.Wisdom+1, 0, 100)
+				}
+				wisdomText = " A shooting star cut across the sky — a moment of wonder."
+				mem.Add(n.ID, memory.Entry{
+					Text:       "I saw a shooting star while stargazing. It felt like a sign.",
+					Time:       w.TimeString(),
+					Importance: 0.6,
+					Category:   memory.CatRoutine,
+					Tags:       []string{"stargaze", "omen"},
+				})
+			}
+			return fmt.Sprintf("Gazed at the stars in the quiet night (-8 stress, +6 happiness).%s", wisdomText)
+		},
+	},
 }

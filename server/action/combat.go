@@ -3,7 +3,6 @@ package action
 import (
 	"fmt"
 	"math"
-	"math/rand"
 
 	ec "github.com/divinity/core/enemy"
 	"github.com/divinity/core/knowledge"
@@ -66,16 +65,39 @@ var combatActions = []Action{
 	{
 		ID: "flee_area", Label: "Flee from enemies to a safe location", Category: "combat",
 		Destination: func(n *npc.NPC, w *world.World) string {
-			var safe []*world.Location
+			// Pick the NEAREST safe location (previously random, which
+			// could send NPCs on 160-minute treks while wolves tore into
+			// them). Fleeing should be fast.
+			cur := w.LocationByID(n.LocationID)
+			var best *world.Location
+			bestDist := math.MaxFloat64
+			var cx, cy float64
+			if cur != nil {
+				cx = float64(cur.X + cur.W/2)
+				cy = float64(cur.Y + cur.H/2)
+			}
 			for _, l := range w.Locations {
-				if l.ID != n.LocationID && len(w.EnemiesAtLocation(l.ID)) == 0 {
-					safe = append(safe, l)
+				if l.ID == n.LocationID {
+					continue
+				}
+				if len(w.EnemiesAtLocation(l.ID)) != 0 {
+					continue
+				}
+				if cur == nil {
+					return l.ID
+				}
+				dx := float64(l.X+l.W/2) - cx
+				dy := float64(l.Y+l.H/2) - cy
+				d := math.Abs(dx) + math.Abs(dy)
+				if d < bestDist {
+					bestDist = d
+					best = l
 				}
 			}
-			if len(safe) == 0 {
+			if best == nil {
 				return ""
 			}
-			return safe[rand.Intn(len(safe))].ID
+			return best.ID
 		},
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			return len(w.EnemiesAtLocation(n.LocationID)) > 0

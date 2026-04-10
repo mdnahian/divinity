@@ -82,6 +82,61 @@ var constructionActions = []Action{
 			return "No building to repair."
 		},
 	},
+	// reinforce_structure: a builder-specific maintenance action. Works at
+	// ANY building (not just owned like repair_building), restores a small
+	// amount of durability, and grants reputation + carpentry xp. Fills the
+	// builder profession gap — they had zero unique actions beyond the
+	// begin_construction + repair_building pair which required ownership or
+	// rare materials. Reinforcing is free-ish (consumes 1 stone if carried)
+	// and rewards community service.
+	{
+		ID: "reinforce_structure", Label: "Reinforce a building at your location (builder-specific)", Category: "construction", BaseGameMinutes: 45, SkillKey: "carpentry",
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			// Builder profession or carpentry skill >= 15 can do this
+			hasSkill := n.Profession == "builder" || n.GetSkillLevel("carpentry") >= 15 || n.Stats.Carpentry >= 15
+			if !hasSkill {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return false
+			}
+			// Building must have some visible durability and be below 100
+			return loc.BuildingDurability > 0 && loc.BuildingDurability < 100 && n.Needs.Fatigue < 75
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || loc.BuildingDurability <= 0 {
+				return "No structure to reinforce here."
+			}
+			skill := math.Max(n.GetSkillLevel("carpentry"), float64(n.Stats.Carpentry))
+			restore := 6.0 + skill*0.15
+			// Consuming 1 stone as material if available gives a small bonus
+			stoneBonus := ""
+			if n.HasItem("stone") != nil {
+				n.RemoveItem("stone", 1)
+				restore += 4
+				stoneBonus = " (used 1 stone)"
+			}
+			before := loc.BuildingDurability
+			loc.BuildingDurability = math.Min(100, loc.BuildingDurability+restore)
+			actualRestore := loc.BuildingDurability - before
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.GainSkill("carpentry", 0.4)
+			// Tending public structures grants small reputation if we don't own it
+			if loc.BuildingOwnerID != n.ID {
+				n.Stats.Reputation = clamp(n.Stats.Reputation+1, 0, 100)
+			}
+			mem.Add(n.ID, memory.Entry{
+				Text:       fmt.Sprintf("I reinforced the %s (durability +%.0f).", loc.Name, actualRestore),
+				Time:       w.TimeString(),
+				Importance: 0.3,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"builder", "reinforce", loc.ID},
+			})
+			return fmt.Sprintf("Reinforced %s (durability %.0f → %.0f)%s.", loc.Name, before, loc.BuildingDurability, stoneBonus)
+		},
+	},
 	{
 		ID: "commission_construction", Label: "Pay a carpenter to build a structure for you (10 gold)", Category: "construction", BaseGameMinutes: 60,
 		Conditions: func(n *npc.NPC, w *world.World) bool {
