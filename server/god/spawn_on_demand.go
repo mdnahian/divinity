@@ -73,6 +73,24 @@ Respond with ONLY a JSON object:
 	if parsed.Profession == "" {
 		parsed.Profession = "farmer"
 	}
+	// Normalize common LLM profession aliases to canonical names.
+	// The LLM sometimes returns "smith" instead of "blacksmith", "priest"
+	// instead of "healer", etc. Without this, NPCs spawn with unrecognized
+	// professions and lose all profession-specific actions/equipment.
+	profAliases := map[string]string{
+		"smith":      "blacksmith",
+		"priest":     "healer",
+		"cleric":     "healer",
+		"lumberjack": "carpenter",
+		"woodcutter": "carpenter",
+		"fisherman":  "fisher",
+		"trader":     "merchant",
+		"soldier":    "guard",
+		"warrior":    "guard",
+	}
+	if canonical, ok := profAliases[strings.ToLower(parsed.Profession)]; ok {
+		parsed.Profession = canonical
+	}
 	if parsed.Age < 18 || parsed.Age > 60 {
 		parsed.Age = 25
 	}

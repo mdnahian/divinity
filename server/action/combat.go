@@ -3,7 +3,6 @@ package action
 import (
 	"fmt"
 	"math"
-	"math/rand"
 
 	ec "github.com/divinity/core/enemy"
 	"github.com/divinity/core/knowledge"
@@ -66,16 +65,39 @@ var combatActions = []Action{
 	{
 		ID: "flee_area", Label: "Flee from enemies to a safe location", Category: "combat",
 		Destination: func(n *npc.NPC, w *world.World) string {
-			var safe []*world.Location
+			// Pick the NEAREST safe location. Previously a random safe
+			// location was chosen, which could send NPCs on 160+ minute
+			// treks while wolves attacked them every tick.
+			cur := w.LocationByID(n.LocationID)
+			var best *world.Location
+			bestDist := math.MaxFloat64
+			var cx, cy float64
+			if cur != nil {
+				cx = float64(cur.X + cur.W/2)
+				cy = float64(cur.Y + cur.H/2)
+			}
 			for _, l := range w.Locations {
-				if l.ID != n.LocationID && len(w.EnemiesAtLocation(l.ID)) == 0 {
-					safe = append(safe, l)
+				if l.ID == n.LocationID {
+					continue
+				}
+				if len(w.EnemiesAtLocation(l.ID)) != 0 {
+					continue
+				}
+				if cur == nil {
+					return l.ID
+				}
+				dx := float64(l.X+l.W/2) - cx
+				dy := float64(l.Y+l.H/2) - cy
+				d := math.Abs(dx) + math.Abs(dy)
+				if d < bestDist {
+					bestDist = d
+					best = l
 				}
 			}
-			if len(safe) == 0 {
+			if best == nil {
 				return ""
 			}
-			return safe[rand.Intn(len(safe))].ID
+			return best.ID
 		},
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			return len(w.EnemiesAtLocation(n.LocationID)) > 0
@@ -155,6 +177,58 @@ var combatActions = []Action{
 			}
 			mem.Add(n.ID, memory.Entry{Text: fmt.Sprintf("%s and I attacked a %s together.", ally.Name, e.Name), Time: w.TimeString(), Importance: 0.5, Category: memory.CatCombat, Tags: []string{ally.ID, e.Name, n.LocationID}})
 			return fmt.Sprintf("%s and %s fought the %s together: dealt %d damage (%s HP: %d).", n.Name, ally.Name, e.Name, totalDmg, e.Name, e.HP)
+		},
+	},
+	// guard_patrol: a guard/knight-specific action that patrols a location,
+	// gaining combat skill, reputation, and reducing stress for any NPCs
+	// present. Fills the gap where guards had zero unique profession actions
+	// despite having barracks locations.
+	{
+		ID: "guard_patrol", Label: "Patrol the area (guard/knight profession)", Category: "combat", BaseGameMinutes: 30,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Profession != "guard" && n.Profession != "knight" && n.GetSkillLevel("combat") < 25 {
+				return false
+			}
+			if n.Needs.Fatigue >= 75 || n.LastAction == "guard_patrol" {
+				return false
+			}
+			return true
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			locName := "the area"
+			if loc != nil {
+				locName = loc.Name
+			}
+			n.GainSkill("combat", 0.3)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.Stats.Reputation = clamp(n.Stats.Reputation+1, 0, 100)
+			// If enemies are present, the patrol spots them
+			enemies := w.EnemiesAtLocation(n.LocationID)
+			if len(enemies) > 0 {
+				n.Stress = clamp(n.Stress+5, 0, 100)
+				mem.Add(n.ID, memory.Entry{
+					Text:       fmt.Sprintf("I patrolled %s and spotted %d hostile creature(s)!", locName, len(enemies)),
+					Time:       w.TimeString(),
+					Importance: 0.5,
+					Category:   memory.CatCombat,
+					Tags:       []string{"patrol", n.LocationID},
+				})
+				return fmt.Sprintf("Patrolled %s — spotted %d enemy(ies)! (+combat skill, +1 rep).", locName, len(enemies))
+			}
+			// Calm NPCs at the location feel safer
+			nearby := w.NPCsAtLocation(n.LocationID, n.ID)
+			for _, o := range nearby {
+				o.Stress = clamp(o.Stress-3, 0, 100)
+			}
+			mem.Add(n.ID, memory.Entry{
+				Text:       fmt.Sprintf("I patrolled %s. All clear.", locName),
+				Time:       w.TimeString(),
+				Importance: 0.2,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"patrol", n.LocationID},
+			})
+			return fmt.Sprintf("Patrolled %s — all clear (+combat skill, +1 rep).", locName)
 		},
 	},
 }

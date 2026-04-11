@@ -82,14 +82,16 @@ var craftActions = []Action{
 		Destination: destNearestOfType("forge"),
 		Candidates:  candidatesOfType("forge"),
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			if !n.HasProfessionOrSkill("blacksmith", "blacksmith", 20) {
+			if !n.HasProfessionOrSkill("blacksmith", "blacksmith", 20) && !n.HasProfessionOrSkill("smith", "smith", 20) {
 				return false
 			}
 			ore := n.HasItem("iron ore")
 			if ore == nil || ore.Qty < 2 {
 				return false
 			}
-			return world.IsWorkerAtType(n, "forge", w)
+			// Allow profession smiths/blacksmiths to use any forge, not
+			// just ones they own/work at. This lets new spawns use forges.
+			return world.IsWorkerAtType(n, "forge", w) || isSmithAtForge(n, w)
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
 			n.RemoveItem("iron ore", 2)
@@ -109,14 +111,15 @@ var craftActions = []Action{
 		Destination: destNearestOfType("forge"),
 		Candidates:  candidatesOfType("forge"),
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			if n.GetSkillLevel("blacksmith") < 30 {
+			smithSkill := math.Max(n.GetSkillLevel("blacksmith"), n.GetSkillLevel("smith"))
+			if smithSkill < 30 {
 				return false
 			}
 			ingots := n.HasItem("iron ingot")
 			if ingots == nil || ingots.Qty < 2 {
 				return false
 			}
-			return world.IsWorkerAtType(n, "forge", w)
+			return world.IsWorkerAtType(n, "forge", w) || isSmithAtForge(n, w)
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
 			n.RemoveItem("iron ingot", 2)
@@ -137,10 +140,11 @@ var craftActions = []Action{
 		Destination: destNearestOfType("forge"),
 		Candidates:  candidatesOfType("forge"),
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			if n.GetSkillLevel("blacksmith") < 25 {
+			smithSkill := math.Max(n.GetSkillLevel("blacksmith"), n.GetSkillLevel("smith"))
+			if smithSkill < 25 {
 				return false
 			}
-			return n.HasItem("iron ingot") != nil && world.IsWorkerAtType(n, "forge", w)
+			return n.HasItem("iron ingot") != nil && (world.IsWorkerAtType(n, "forge", w) || isSmithAtForge(n, w))
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
 			n.RemoveItem("iron ingot", 1)
@@ -346,4 +350,16 @@ var craftActions = []Action{
 			return "Copied a manuscript into a book (can sell at market)."
 		},
 	},
+}
+
+// isSmithAtForge returns true when an NPC with smith/blacksmith profession
+// is currently located at a forge. This allows smiths to use forge actions
+// even without ownership or employment — their profession alone qualifies
+// them to use the forge equipment.
+func isSmithAtForge(n *npc.NPC, w *world.World) bool {
+	if n.Profession != "blacksmith" && n.Profession != "smith" {
+		return false
+	}
+	loc := w.LocationByID(n.LocationID)
+	return loc != nil && loc.Type == "forge"
 }

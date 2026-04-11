@@ -358,6 +358,29 @@ func (e *Engine) runEnemyAttackPhase() {
 		})
 		target.Stress = clamp(target.Stress+15, 0, 100)
 
+		// Auto-interrupt: abort non-combat actions when HP drops below 50
+		// from enemy damage. Previously NPCs were busy-locked during
+		// multi-tick actions (forage, travel, sleep) and died helplessly
+		// as wolves attacked them every tick with no way to react.
+		if target.HP > 0 && target.HP < 50 && target.BusyUntilTick > e.tickNum {
+			actionID := target.PendingActionID
+			if actionID != "attack_enemy" && actionID != "flee_area" && actionID != "party_attack" {
+				log.Printf("[AutoInterrupt] %s action '%s' aborted at HP %d due to enemy attack", target.Name, actionID, target.HP)
+				target.BusyUntilTick = 0
+				target.PendingActionID = ""
+				target.PendingTargetName = ""
+				target.PendingReason = ""
+				e.Memory.Add(target.ID, memory.Entry{
+					Text:       fmt.Sprintf("I was forced to stop %s — a %s is attacking me and my HP is critical (%d)!", actionID, en.Name, target.HP),
+					Time:       w.TimeString(),
+					Importance: 0.95,
+					Category:   memory.CatCombat,
+					Tags:       []string{en.Name, en.LocationID, "interrupted"},
+				})
+				w.LogEventNPC(fmt.Sprintf("%s's action interrupted by %s attack (HP: %d)", target.Name, en.Name, target.HP), "combat", target.ID)
+			}
+		}
+
 		for _, witness := range npcsHere {
 			if witness.ID != target.ID {
 				e.Memory.Add(witness.ID, memory.Entry{

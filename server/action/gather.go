@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 
 	"github.com/divinity/core/knowledge"
 	"github.com/divinity/core/memory"
@@ -481,10 +482,27 @@ var gatherActions = []Action{
 			}
 			const maxGoldPickup = 20
 			const maxItemStacks = 5
+			// Sort ground items so the most valuable non-gold stacks are
+			// scavenged first. Previously the first 5 stacks were taken in
+			// insertion order, so NPCs grabbed bread while ignoring iron
+			// ore, leather, and other valuable items nearby.
+			sorted := make([]world.GroundItem, len(items))
+			copy(sorted, items)
+			sort.SliceStable(sorted, func(i, j int) bool {
+				if sorted[i].Name == "gold" && sorted[j].Name != "gold" {
+					return true
+				}
+				if sorted[j].Name == "gold" && sorted[i].Name != "gold" {
+					return false
+				}
+				vi := w.GetPrice(sorted[i].Name) * sorted[i].Qty
+				vj := w.GetPrice(sorted[j].Name) * sorted[j].Qty
+				return vi > vj
+			})
 			goldPickedUp := 0
 			itemStacksPickedUp := 0
 			var results []string
-			for _, item := range items {
+			for _, item := range sorted {
 				if item.Name == "gold" {
 					if goldPickedUp >= maxGoldPickup {
 						continue // Skip additional gold stacks beyond cap
