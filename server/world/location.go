@@ -133,11 +133,27 @@ var ResourceDefaults = map[string]map[string]int{
 	"barracks": {"water": 40},
 }
 
+// IsOutdoor returns true for location types that are considered outdoors.
+func (l *Location) IsOutdoor() bool {
+	switch l.Type {
+	case "forest", "farm", "dock", "well", "garden", "stable",
+		"desert", "swamp", "tundra", "cave", "market", "shrine":
+		return true
+	}
+	return false
+}
+
+// HasCampfire returns true if this location has an active campfire resource.
+func (l *Location) HasCampfire() bool {
+	return l.Resources != nil && l.Resources["campfire"] > 0
+}
+
 var ResourceRegen = map[string]int{
 	"berries": 2, "herbs": 1, "game": 1, "wood": 1,
 	"wheat": 2, "thatch": 1,
 	"stone": 1, "iron_ore": 1,
 	"fish": 2, "clay": 1, "water": 0,
+	"campfire": -1, // campfires burn down over time
 	// Kingdom-scale resources
 	"hay": 1, "sand": 1, "cactus_water": 1,
 	"peat": 1, "poison_herbs": 1, "bog_iron": 1,

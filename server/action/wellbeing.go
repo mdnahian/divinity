@@ -12,6 +12,13 @@ import (
 	"github.com/divinity/core/world"
 )
 
+// outdoorTypes are location types considered "outdoors" where campfires can be built.
+var outdoorTypes = map[string]bool{
+	"forest": true, "farm": true, "dock": true, "well": true, "garden": true,
+	"stable": true, "desert": true, "swamp": true, "tundra": true, "cave": true,
+	"market": true, "shrine": true,
+}
+
 var wellbeingActions = []Action{
 	{
 		ID: "heal", Label: "Use medicine to restore HP", Category: "wellbeing",
@@ -187,6 +194,124 @@ var wellbeingActions = []Action{
 			_ = w
 			_ = rand.Float64
 			return fmt.Sprintf("Read a %s (+%d literacy, +happiness).", itemName, litGain)
+		},
+	},
+	// --- NEW: Campfire actions ---
+	{
+		ID: "build_campfire", Label: "Build a campfire from logs (outdoor only)", Category: "wellbeing", BaseGameMinutes: 15,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			logs := n.HasItem("logs")
+			if logs == nil || logs.Qty < 1 {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || !outdoorTypes[loc.Type] {
+				return false
+			}
+			// Don't build if already has campfire
+			if loc.HasCampfire() {
+				return false
+			}
+			// Can't build in storm
+			if w.Weather == "storm" {
+				return false
+			}
+			return true
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return "Couldn't find a place to build a fire."
+			}
+			// Rain makes it harder to build
+			if w.Weather == "rain" && rand.Float64() < 0.4 {
+				n.Needs.Fatigue = clampF(n.Needs.Fatigue+3, 0, 100)
+				return "Tried to start a fire in the rain, but the wood was too wet."
+			}
+			n.RemoveItem("logs", 1)
+			if loc.Resources == nil {
+				loc.Resources = make(map[string]int)
+			}
+			loc.Resources["campfire"] = 8 // lasts ~8 resource ticks (40 game ticks)
+			if loc.MaxResources == nil {
+				loc.MaxResources = make(map[string]int)
+			}
+			loc.MaxResources["campfire"] = 0 // does not regen
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+5, 0, 100)
+			n.GainSkill("carpentry", 0.1)
+			locName := loc.Name
+			mem.Add(n.ID, memory.Entry{
+				Text:       fmt.Sprintf("I built a campfire at %s. The warmth feels good.", locName),
+				Time:       w.TimeString(),
+				Importance: 0.2,
+				Category:   "routine",
+				Tags:       []string{"campfire", n.LocationID},
+			})
+			return fmt.Sprintf("Built a campfire at %s from logs. The fire crackles warmly.", locName)
+		},
+	},
+	{
+		ID: "warm_by_fire", Label: "Sit by the campfire to rest and recover", Category: "wellbeing", BaseGameMinutes: 15,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.LastAction == "warm_by_fire" {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			return loc != nil && loc.HasCampfire()
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || !loc.HasCampfire() {
+				return "The fire has gone out."
+			}
+			n.Stress = clamp(n.Stress-8, 0, 100)
+			n.Happiness = clamp(n.Happiness+4, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue-5, 0, 100)
+			// Solo social recovery: sitting by fire with thoughts
+			n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-5, 0, 100)
+			if w.IsNight() {
+				n.Happiness = clamp(n.Happiness+2, 0, 100)
+				return "Sat by the campfire under the stars (-8 stress, +6 happiness, -5 fatigue). The night feels peaceful."
+			}
+			return "Sat by the warm campfire (-8 stress, +4 happiness, -5 fatigue)."
+		},
+	},
+	{
+		ID: "campfire_cook", Label: "Cook food over the campfire (fish or meat)", Category: "wellbeing", BaseGameMinutes: 20,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || !loc.HasCampfire() {
+				return false
+			}
+			return n.HasItem("fish") != nil || n.HasItem("raw meat") != nil
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil || !loc.HasCampfire() {
+				return "The fire has gone out — can't cook."
+			}
+			var ingredient string
+			if n.HasItem("fish") != nil {
+				ingredient = "fish"
+			} else if n.HasItem("raw meat") != nil {
+				ingredient = "raw meat"
+			}
+			if ingredient == "" {
+				return "Had nothing to cook."
+			}
+			qty := 1
+			if it := n.HasItem(ingredient); it != nil && it.Qty >= 2 {
+				qty = 2
+			}
+			n.RemoveItem(ingredient, qty)
+			if ingredient == "fish" {
+				n.AddItem("grilled fish", qty)
+			} else {
+				n.AddItem("cooked meal", qty)
+			}
+			n.GainSkill("cook", 0.2)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+3, 0, 100)
+			return fmt.Sprintf("Cooked %d %s over the campfire.", qty, ingredient)
 		},
 	},
 }

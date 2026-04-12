@@ -75,6 +75,13 @@ var Registry = map[string]ItemDef{
 
 	// Trade goods
 	"ceramic": {Weight: 0.5, Stackable: true, DurabilityBase: 60, DecayRate: 0, Category: "trade_good"},
+
+	// Cooked food (upgraded)
+	"grilled fish": {Weight: 0.3, Stackable: true, DurabilityBase: 40, DecayRate: 3, Category: "food", Effects: map[string]float64{"hunger_restore": 30}},
+	"herb bread":   {Weight: 0.3, Stackable: true, DurabilityBase: 50, DecayRate: 2, Category: "food", Effects: map[string]float64{"hunger_restore": 35}},
+
+	// Medicine (upgraded)
+	"herbal poultice": {Weight: 0.2, Stackable: true, DurabilityBase: 40, DecayRate: 2, Category: "medicine", Effects: map[string]float64{"heal_hp_min": 8, "heal_hp_max": 14}},
 }
 
 func GetInfo(name string) ItemDef {

@@ -580,7 +580,13 @@ func (w *World) RegenResources() {
 			if r, ok := ResourceRegen[key]; ok {
 				regen = r
 			}
-			if regen <= 0 {
+			// Handle resource decay (negative regen, e.g. campfires burning down)
+			if regen < 0 {
+				cur := loc.Resources[key]
+				loc.Resources[key] = max(0, cur+regen)
+				continue
+			}
+			if regen == 0 {
 				continue
 			}
 			cur := loc.Resources[key]

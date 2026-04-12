@@ -386,7 +386,8 @@ func actionMemoryCategory(actionID string) string {
 	case "trade", "buy_food", "buy_ale", "buy_supplies", "serve_customer",
 		"heal_patient", "offer_counsel", "farm", "fish", "hunt",
 		"mine_ore", "mine_stone", "chop_wood", "forage",
-		"gather_thatch", "gather_clay", "scavenge", "start_business":
+		"gather_thatch", "gather_clay", "gather_herbs", "scavenge", "start_business",
+		"salvage", "bake_campfire", "campfire_cook", "brew_herbal_tea":
 		return memory.CatEconomic
 	case "talk", "gift", "eat_together", "drink_together", "comfort",
 		"flirt", "work_together", "share_journal", "steal":

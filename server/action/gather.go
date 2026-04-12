@@ -182,13 +182,26 @@ var gatherActions = []Action{
 			if bonus > 0 {
 				harvested = int(math.Ceil(float64(harvested) * (1 + bonus)))
 			}
+			// Weather effects: rain boosts crop yield, storm damages
+			weatherNote := ""
+			if w.Weather == "rain" {
+				harvested++
+				weatherNote = " The rain nourished the crops."
+			} else if w.Weather == "storm" {
+				harvested = max(1, harvested-1)
+				weatherNote = " The storm damaged some of the crop."
+				n.Stress = clamp(n.Stress+3, 0, 100)
+			} else if w.Weather == "clear" {
+				n.Happiness = clamp(n.Happiness+1, 0, 100)
+				weatherNote = " The warm sun made for pleasant work."
+			}
 			if loc != nil && loc.Resources != nil {
 				loc.Resources["wheat"] = max(0, loc.Resources["wheat"]-harvested)
 			}
 			n.AddItem("wheat", harvested)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+12, 0, 100)
 			n.GainSkill("farmer", 0.3)
-			return fmt.Sprintf("Worked the fields and harvested %d wheat.", harvested)
+			return fmt.Sprintf("Worked the fields and harvested %d wheat.%s", harvested, weatherNote)
 		},
 	},
 	{
@@ -215,7 +228,20 @@ var gatherActions = []Action{
 			if avail <= 0 {
 				return "The waters are fished out — nothing to catch."
 			}
-			if rand.Float64() < 0.6 {
+			// Weather effects on fishing: rain increases catch rate, storm decreases
+			catchChance := 0.6
+			weatherNote := ""
+			if w.Weather == "rain" {
+				catchChance = 0.75
+				weatherNote = " The rain brought the fish to the surface."
+			} else if w.Weather == "storm" {
+				catchChance = 0.3
+				weatherNote = " The stormy waters made fishing difficult."
+				n.Stress = clamp(n.Stress+2, 0, 100)
+			} else if w.Weather == "clear" {
+				n.Happiness = clamp(n.Happiness+1, 0, 100)
+			}
+			if rand.Float64() < catchChance {
 				caught := int(math.Min(float64(randInt(1, 3)), float64(avail)))
 				bonus := knowledge.GetTechniqueBonus(n.ID, "fish_catch", w.Techniques)
 				if bonus > 0 {
@@ -226,10 +252,13 @@ var gatherActions = []Action{
 				}
 				n.AddItem("fish", caught)
 				n.GainSkill("fisher", 0.3)
-				return fmt.Sprintf("Caught %d fish.", caught)
+				return fmt.Sprintf("Caught %d fish.%s", caught, weatherNote)
 			}
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
 			n.GainSkill("fisher", 0.1)
+			if weatherNote != "" {
+				return "Sat by the water but caught nothing (+fishing experience)." + weatherNote
+			}
 			return "Sat by the water but caught nothing (+fishing experience)."
 		},
 	},
@@ -467,6 +496,75 @@ var gatherActions = []Action{
 			n.AddItem("clay", qty)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+10, 0, 100)
 			return fmt.Sprintf("Gathered %d clay near the water.", qty)
+		},
+	},
+	{
+		ID: "gather_herbs", Label: "Gather medicinal herbs in the forest or garden", Category: "gather", BaseGameMinutes: 30, SkillKey: "herbalism",
+		Destination: func(n *npc.NPC, w *world.World) string {
+			// Prefer gardens if available, then forests
+			for _, g := range w.LocationsByType("garden") {
+				return g.ID
+			}
+			return destNearestOfType("forest")(n, w)
+		},
+		Candidates: func(_ *npc.NPC, w *world.World) []*world.Location {
+			var locs []*world.Location
+			locs = append(locs, w.LocationsByType("garden")...)
+			for _, f := range w.LocationsByType("forest") {
+				if f.Resources == nil || f.Resources["herbs"] > 0 {
+					locs = append(locs, f)
+				}
+			}
+			return locs
+		},
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 {
+				return false
+			}
+			// Check gardens
+			if len(w.LocationsByType("garden")) > 0 {
+				return true
+			}
+			// Check forests with herbs
+			for _, f := range w.LocationsByType("forest") {
+				if f.Resources == nil || f.Resources["herbs"] > 0 {
+					return true
+				}
+			}
+			return false
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			// Garden locations always yield herbs (cultivated)
+			if loc != nil && loc.Type == "garden" {
+				herbs := randInt(1, 3)
+				n.AddItem("herbs", herbs)
+				n.Needs.Fatigue = clampF(n.Needs.Fatigue+6, 0, 100)
+				n.GainSkill("herbalism", 0.4)
+				return fmt.Sprintf("Carefully gathered %d herbs from the garden.", herbs)
+			}
+			// Forest: check herb availability
+			avail := 99
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["herbs"]
+			}
+			if avail <= 0 {
+				n.Needs.Fatigue = clampF(n.Needs.Fatigue+5, 0, 100)
+				return "Searched the forest floor but found no herbs."
+			}
+			herbs := int(math.Min(float64(randInt(1, 2)), float64(avail)))
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["herbs"] = max(0, loc.Resources["herbs"]-herbs)
+			}
+			n.AddItem("herbs", herbs)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.GainSkill("herbalism", 0.3)
+			// Bonus: herbalism skill gives chance to find a poultice
+			if n.GetSkillLevel("herbalism") >= 20 && rand.Float64() < 0.2 {
+				n.AddItem("herbal poultice", 1)
+				return fmt.Sprintf("Gathered %d herbs and prepared a herbal poultice from the freshest leaves.", herbs)
+			}
+			return fmt.Sprintf("Gathered %d medicinal herbs in the forest.", herbs)
 		},
 	},
 	{

@@ -253,6 +253,111 @@ var craftActions = []Action{
 		},
 	},
 	{
+		ID: "salvage", Label: "Break down equipment into raw materials", Category: "craft", BaseGameMinutes: 30,
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			// Check for breakable equipment in inventory
+			for _, it := range n.Inventory {
+				if it.Qty > 0 {
+					switch it.Name {
+					case "iron sword", "iron axe", "pickaxe", "hammer":
+						return true
+					case "leather armor":
+						return true
+					case "wooden club", "walking stick":
+						return true
+					}
+				}
+			}
+			return false
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
+			// Try to salvage the lowest-durability item first
+			type salvageOption struct {
+				name     string
+				material string
+				qty      int
+			}
+			options := []salvageOption{
+				{"iron sword", "iron ingot", 1},
+				{"iron axe", "iron ingot", 1},
+				{"pickaxe", "iron ingot", 1},
+				{"hammer", "iron ingot", 1},
+				{"leather armor", "leather", 2},
+				{"wooden club", "logs", 1},
+				{"walking stick", "logs", 1},
+			}
+			for _, opt := range options {
+				if n.HasItem(opt.name) != nil {
+					n.RemoveItem(opt.name, 1)
+					n.AddItem(opt.material, opt.qty)
+					n.Needs.Fatigue = clampF(n.Needs.Fatigue+6, 0, 100)
+					return fmt.Sprintf("Salvaged %s into %d %s.", opt.name, opt.qty, opt.material)
+				}
+			}
+			return "Had nothing to salvage."
+		},
+	},
+	{
+		ID: "bake_campfire", Label: "Bake bread from wheat over a fire", Category: "craft", BaseGameMinutes: 30, SkillKey: "cook",
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			wheat := n.HasItem("wheat")
+			if wheat == nil || wheat.Qty < 2 {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return false
+			}
+			// Needs campfire or forge (any fire source)
+			if loc.HasCampfire() {
+				return true
+			}
+			if loc.Type == "forge" {
+				return true
+			}
+			return false
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			wheat := n.HasItem("wheat")
+			if wheat == nil || wheat.Qty < 2 {
+				return "Not enough wheat to bake (need 2)."
+			}
+			n.RemoveItem("wheat", 2)
+			loaves := 2
+			// Bakers get bonus output
+			if n.Profession == "baker" || n.GetSkillLevel("cook") >= 30 {
+				loaves = 3
+			}
+			n.AddItem("bread", loaves)
+			n.GainSkill("cook", 0.3)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+5, 0, 100)
+			return fmt.Sprintf("Baked %d loaves of bread from wheat over the fire.", loaves)
+		},
+	},
+	{
+		ID: "brew_herbal_tea", Label: "Brew herbal tea from herbs (at fire)", Category: "craft", BaseGameMinutes: 20,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			herbs := n.HasItem("herbs")
+			if herbs == nil || herbs.Qty < 1 {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return false
+			}
+			return loc.HasCampfire() || loc.Type == "forge" || loc.Type == "inn"
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			n.RemoveItem("herbs", 1)
+			n.Stress = clamp(n.Stress-6, 0, 100)
+			n.Happiness = clamp(n.Happiness+3, 0, 100)
+			n.Needs.Thirst = clampF(n.Needs.Thirst+15, 0, 100)
+			n.HP = min(100, n.HP+5)
+			n.GainSkill("herbalism", 0.2)
+			return "Brewed herbal tea from herbs (-6 stress, +3 happiness, +15 thirst, +5 HP)."
+		},
+	},
+	{
 		ID: "write_technique", Label: "Write down a technique as a scroll", Category: "craft", BaseGameMinutes: 45,
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			if n.Literacy < 60 {
