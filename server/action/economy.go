@@ -62,11 +62,33 @@ var economyActions = []Action{
 			if target == nil {
 				return "Went to market but nobody was there."
 			}
+			// Pick the most valuable sellable item the target can afford.
+			// Previously the first inventory slot was always sold, which
+			// meant NPCs unloaded bread while hoarding valuable ore/fish.
 			var sellable *npc.InventoryItem
+			bestPrice := 0
 			for i := range n.Inventory {
-				if n.Inventory[i].Name != "gold" && n.Inventory[i].Qty > 0 {
+				if n.Inventory[i].Name == "gold" || n.Inventory[i].Qty <= 0 {
+					continue
+				}
+				p := w.GetPrice(n.Inventory[i].Name)
+				if p > bestPrice && p <= target.GoldCount() {
+					bestPrice = p
 					sellable = &n.Inventory[i]
-					break
+				}
+			}
+			// Fallback: sell the cheapest item the target can still afford.
+			if sellable == nil {
+				cheap := 1 << 30
+				for i := range n.Inventory {
+					if n.Inventory[i].Name == "gold" || n.Inventory[i].Qty <= 0 {
+						continue
+					}
+					p := w.GetPrice(n.Inventory[i].Name)
+					if p < cheap && p <= target.GoldCount() {
+						cheap = p
+						sellable = &n.Inventory[i]
+					}
 				}
 			}
 			if sellable == nil {

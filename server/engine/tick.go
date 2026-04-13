@@ -358,6 +358,26 @@ func (e *Engine) runEnemyAttackPhase() {
 		})
 		target.Stress = clamp(target.Stress+15, 0, 100)
 
+		// SAFETY: if HP falls below 50 while the NPC is locked into a
+		// non-combat action, abort that action so they can react next
+		// tick (flee, fight back, heal). Previously, NPCs would forage
+		// or travel for 30+ minutes and die from 7+ attacks without any
+		// chance to respond. Only abort non-combat actions so party
+		// attacks etc. still run to completion.
+		if target.HP > 0 && target.HP < 50 && target.PendingActionID != "" {
+			pending := target.PendingActionID
+			combatLocked := pending == "attack_enemy" || pending == "flee_area" || pending == "party_attack"
+			if !combatLocked {
+				target.BusyUntilTick = e.TickCount()
+				target.PendingActionID = ""
+				target.PendingTargetName = ""
+				target.PendingReason = ""
+				target.CurrentGoal = ""
+				log.Printf("[Combat] %s aborted %s action after taking damage (HP:%d) — can react next tick",
+					target.Name, pending, target.HP)
+			}
+		}
+
 		for _, witness := range npcsHere {
 			if witness.ID != target.ID {
 				e.Memory.Add(witness.ID, memory.Entry{

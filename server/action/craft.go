@@ -346,4 +346,33 @@ var craftActions = []Action{
 			return "Copied a manuscript into a book (can sell at market)."
 		},
 	},
+	// whittle: a solo-friendly craft that consumes 1 log and produces a
+	// carved figurine curiosity. Available anywhere — no workshop needed.
+	// Gains carpentry skill slowly. Good for solo players in empty worlds
+	// and for builders who want to level carpentry from anywhere.
+	{
+		ID: "whittle", Label: "Whittle a log into a carved figurine (needs 1 log)", Category: "craft", BaseGameMinutes: 30, SkillKey: "carpentry",
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			if n.Needs.Fatigue >= 75 || n.LastAction == "whittle" {
+				return false
+			}
+			return n.HasItem("logs") != nil
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
+			n.RemoveItem("logs", 1)
+			// Quality depends on carpentry skill: higher skill → better chance of bonus
+			carpSkill := math.Max(n.GetSkillLevel("carpentry"), float64(n.Stats.Carpentry))
+			qty := 1
+			bonusText := ""
+			if carpSkill >= 50 && rand.Float64() < 0.4 {
+				qty = 2
+				bonusText = " The carving was so fine you made two."
+			}
+			n.AddItem("carved figurine", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+4, 0, 100)
+			n.Happiness = clamp(n.Happiness+2, 0, 100)
+			n.GainSkill("carpentry", 0.3)
+			return fmt.Sprintf("Whittled a log into %d carved figurine(s).%s", qty, bonusText)
+		},
+	},
 }
