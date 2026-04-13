@@ -66,6 +66,7 @@ var combatActions = []Action{
 	{
 		ID: "flee_area", Label: "Flee from enemies to a safe location", Category: "combat",
 		Destination: func(n *npc.NPC, w *world.World) string {
+			cur := w.LocationByID(n.LocationID)
 			var safe []*world.Location
 			for _, l := range w.Locations {
 				if l.ID != n.LocationID && len(w.EnemiesAtLocation(l.ID)) == 0 {
@@ -75,7 +76,22 @@ var combatActions = []Action{
 			if len(safe) == 0 {
 				return ""
 			}
-			return safe[rand.Intn(len(safe))].ID
+			// Pick nearest safe location instead of random
+			if cur == nil {
+				return safe[0].ID
+			}
+			best := safe[0]
+			cx := float64(cur.X + cur.W/2)
+			cy := float64(cur.Y + cur.H/2)
+			bestDist := math.Abs(float64(best.X+best.W/2)-cx) + math.Abs(float64(best.Y+best.H/2)-cy)
+			for _, l := range safe[1:] {
+				d := math.Abs(float64(l.X+l.W/2)-cx) + math.Abs(float64(l.Y+l.H/2)-cy)
+				if d < bestDist {
+					best = l
+					bestDist = d
+				}
+			}
+			return best.ID
 		},
 		Conditions: func(n *npc.NPC, w *world.World) bool {
 			return len(w.EnemiesAtLocation(n.LocationID)) > 0

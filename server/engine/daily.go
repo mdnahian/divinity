@@ -57,6 +57,7 @@ func (e *Engine) runDailyTick() {
 	w.DecayGroundItems()
 	w.DecayEconomy()
 	w.RegenResources()
+	w.TickTraps() // Process hunting trap catches
 	e.payWages()
 	e.collectFactionFees()
 	e.expireFactionContracts()

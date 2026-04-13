@@ -160,7 +160,7 @@ var survivalActions = []Action{
 			if n.HomeID != "" {
 				return fmt.Sprintf("Slept at home (-%d fatigue, -5 stress).", restore)
 			}
-			return fmt.Sprintf("Slept at home (-%d fatigue, -5 stress).", restore)
+			return fmt.Sprintf("Rested and slept (-%d fatigue, -5 stress).", restore)
 		},
 	},
 	{

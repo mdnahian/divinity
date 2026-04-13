@@ -32,6 +32,15 @@ type GroundItem struct {
 	Durability float64 `json:"durability"`
 }
 
+// Trap represents a hunting trap placed at a location by an NPC.
+type Trap struct {
+	OwnerID    string `json:"ownerId"`
+	LocationID string `json:"locationId"`
+	SetDay     int    `json:"setDay"`
+	Caught     string `json:"caught"` // item name caught, empty if nothing yet
+	CaughtQty  int    `json:"caughtQty"`
+}
+
 type ActiveEvent struct {
 	Name      string                 `json:"name"`
 	Type      string                 `json:"type"`
@@ -117,6 +126,7 @@ type World struct {
 	EventSeq         int64                      `json:"eventSeq"`
 	EventLog         []EventEntry               `json:"eventLog"`
 	GroundItems      []GroundItem               `json:"groundItems"`
+	Traps            []Trap                     `json:"traps"`
 	Factions         []*faction.Faction         `json:"factions"`
 	FactionContracts []*faction.FactionContract `json:"factionContracts"`
 	Economy          map[string]EconomyEntry    `json:"economy"`
@@ -942,6 +952,71 @@ func (w *World) DecayMounts() {
 						c.HorseID = ""
 					}
 				}
+			}
+		}
+	}
+}
+
+// TrapsAt returns all traps placed at a given location.
+func (w *World) TrapsAt(locID string) []Trap {
+	var result []Trap
+	for _, t := range w.Traps {
+		if t.LocationID == locID {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+// TrapsByOwner returns all traps owned by an NPC.
+func (w *World) TrapsByOwner(ownerID string) []Trap {
+	var result []Trap
+	for _, t := range w.Traps {
+		if t.OwnerID == ownerID {
+			result = append(result, t)
+		}
+	}
+	return result
+}
+
+// RemoveTrap removes a trap owned by ownerID at locationID. Returns true if removed.
+func (w *World) RemoveTrap(ownerID, locationID string) bool {
+	for i, t := range w.Traps {
+		if t.OwnerID == ownerID && t.LocationID == locationID {
+			w.Traps = append(w.Traps[:i], w.Traps[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+// TickTraps processes trap catches. Called during daily tick.
+func (w *World) TickTraps() {
+	for i := range w.Traps {
+		t := &w.Traps[i]
+		if t.Caught != "" {
+			continue // already caught something
+		}
+		loc := w.LocationByID(t.LocationID)
+		if loc == nil || loc.Type != "forest" {
+			continue
+		}
+		// 40% chance per day to catch game
+		if rand.Float64() < 0.40 {
+			avail := 99
+			if loc.Resources != nil {
+				avail = loc.Resources["game"]
+			}
+			if avail > 0 {
+				caught := 1
+				if avail >= 2 && rand.Float64() < 0.3 {
+					caught = 2
+				}
+				if loc.Resources != nil {
+					loc.Resources["game"] = max(0, loc.Resources["game"]-caught)
+				}
+				t.Caught = "raw meat"
+				t.CaughtQty = caught
 			}
 		}
 	}

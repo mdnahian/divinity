@@ -75,6 +75,14 @@ var Registry = map[string]ItemDef{
 
 	// Trade goods
 	"ceramic": {Weight: 0.5, Stackable: true, DurabilityBase: 60, DecayRate: 0, Category: "trade_good"},
+
+	// Tools (craftable without forge)
+	"snare":   {Weight: 0.3, Stackable: true, DurabilityBase: 40, DecayRate: 2, Category: "tool"},
+	"canteen": {Weight: 0.4, Stackable: false, DurabilityBase: 80, DecayRate: 0.5, Category: "tool", Effects: map[string]float64{"water_capacity": 3}},
+	"filled canteen": {Weight: 0.8, Stackable: false, DurabilityBase: 80, DecayRate: 0.5, Category: "tool", Effects: map[string]float64{"thirst_restore": 30, "water_charges": 3}},
+
+	// Shelter items
+	"lean-to frame": {Weight: 0, Stackable: false, DurabilityBase: 30, DecayRate: 3, Category: "structure"},
 }
 
 func GetInfo(name string) ItemDef {

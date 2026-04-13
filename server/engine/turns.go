@@ -179,16 +179,37 @@ func (e *Engine) processCompletionsAndInterrupts() {
 		}
 	}
 
+	// Non-combat actions that should be interrupted when enemies attack
+	nonCombatActions := map[string]bool{
+		"forage": true, "farm": true, "fish": true, "hunt": true,
+		"chop_wood": true, "mine_stone": true, "mine_ore": true,
+		"gather_thatch": true, "gather_clay": true, "scavenge": true,
+		"cook": true, "brew_ale": true, "brew_potion": true,
+		"smelt_ore": true, "forge_weapon": true, "forge_tool": true,
+		"tan_hide": true, "tailor_craft": true, "mill_grain": true,
+		"bake_bread_adv": true, "craft_pottery": true,
+		"write_journal": true, "copy_text": true, "write_technique": true,
+		"trade": true, "buy_food": true, "buy_ale": true, "buy_supplies": true,
+		"teach": true, "teach_literacy": true, "teach_technique": true,
+		"read_book": true, "bathe": true, "explore": true, "travel": true,
+		"pray": true, "rest": true, "heal": true,
+		"begin_construction": true, "repair_building": true,
+		"set_trap": true, "check_trap": true, "fill_canteen": true,
+		"craft_basic_tool": true, "build_lean_to": true,
+	}
+
 	for _, n := range alive {
 		if n.BusyUntilTick <= currentTick {
 			continue
 		}
 		enemiesHere := w.EnemiesAtLocation(n.LocationID)
 		shouldInterrupt := false
-		if len(enemiesHere) > 0 && n.HP < 40 {
+		// Interrupt non-combat actions when enemies are present and HP drops below 50
+		if len(enemiesHere) > 0 && n.HP < 50 && nonCombatActions[n.PendingActionID] {
 			shouldInterrupt = true
 		}
-		if n.HP < 15 {
+		// Also interrupt any action at very low HP
+		if n.HP < 20 {
 			shouldInterrupt = true
 		}
 		if shouldInterrupt {

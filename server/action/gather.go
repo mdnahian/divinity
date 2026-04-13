@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 
 	"github.com/divinity/core/knowledge"
 	"github.com/divinity/core/memory"
@@ -94,7 +95,10 @@ var gatherActions = []Action{
 			}
 			n.AddItem("berries", found)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
-			if rand.Float64() < 0.15 {
+			n.GainSkill("herbalism", 0.2)
+			// Herb find chance increases with herbalism skill (foraging knowledge)
+			herbChance := 0.15 + forageKnowledgeBonus(n.GetSkillLevel("herbalism"))
+			if rand.Float64() < herbChance {
 				herbs := 1
 				if loc != nil && loc.Resources != nil {
 					herbs = loc.Resources["herbs"]
@@ -479,6 +483,10 @@ var gatherActions = []Action{
 			if len(items) == 0 {
 				return "Searched around but found nothing."
 			}
+			// Sort by value (highest first) so scavenge picks valuable items over bread
+			sort.Slice(items, func(i, j int) bool {
+				return scavengeItemValue(items[i].Name)*items[i].Qty > scavengeItemValue(items[j].Name)*items[j].Qty
+			})
 			const maxGoldPickup = 20
 			const maxItemStacks = 5
 			goldPickedUp := 0
