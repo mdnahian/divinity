@@ -104,10 +104,23 @@ var combatActions = []Action{
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
 			dest := w.LocationByID(n.LocationID)
-			enemies := w.EnemiesAtLocation(n.LocationID)
+			// By the time Execute runs, the NPC has already traveled to
+			// the safe destination. Check PreviousLocationID (set before
+			// travel) for enemies at the old location.
 			eName := "danger"
-			if len(enemies) > 0 {
-				eName = enemies[0].Name
+			prevLoc := n.PreviousLocationID
+			if prevLoc != "" {
+				enemies := w.EnemiesAtLocation(prevLoc)
+				if len(enemies) > 0 {
+					eName = enemies[0].Name
+				}
+			}
+			if eName == "danger" {
+				// Fallback: check current location just in case
+				enemies := w.EnemiesAtLocation(n.LocationID)
+				if len(enemies) > 0 {
+					eName = enemies[0].Name
+				}
 			}
 			destName := "safety"
 			if dest != nil {

@@ -157,30 +157,6 @@ var wellbeingActions = []Action{
 		},
 	},
 	{
-		ID: "meditate", Label: "Meditate at the shrine (free, no requirements)", Category: "wellbeing", BaseGameMinutes: 30,
-		Destination: destNearestOfType("shrine"),
-		Candidates:  candidatesOfType("shrine"),
-		Conditions: func(n *npc.NPC, _ *world.World) bool {
-			// Available to anyone — no spiritual sensitivity or desperation required.
-			// Blocked only by repeat and very low fatigue (already well-rested).
-			return n.LastAction != "meditate" && n.LastAction != "pray"
-		},
-		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
-			n.Stress = clamp(n.Stress-5, 0, 100)
-			n.Needs.Fatigue = clampF(n.Needs.Fatigue-10, 0, 100)
-			n.Happiness = clamp(n.Happiness+3, 0, 100)
-			n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-8, 0, 100)
-			mem.Add(n.ID, memory.Entry{
-				Text:       "Spent time in quiet meditation at the shrine. Felt a sense of peace.",
-				Time:       w.TimeString(),
-				Importance: 0.3,
-				Category:   memory.CatRoutine,
-				Tags:       []string{"meditate", "shrine"},
-			})
-			return "Meditated at the shrine (-5 stress, -10 fatigue, +3 happiness, -8 social need)."
-		},
-	},
-	{
 		ID: "reflect", Label: "Sit quietly and reflect on life", Category: "wellbeing", BaseGameMinutes: 15,
 		Conditions: func(n *npc.NPC, _ *world.World) bool {
 			// Available when lonely (high social need) and not repeating.
@@ -235,14 +211,15 @@ var wellbeingActions = []Action{
 	},
 	// meditate: a solo-friendly shrine action. Works for ANY NPC (not gated
 	// on desperation like `pray`). Restores stress, improves spiritual
-	// sensitivity over time, and gives mild happiness. Encourages shrine use
-	// during normal play and fills the gap at shrines with no other actions.
+	// sensitivity over time, and gives mild happiness. Also reduces social
+	// need slightly (contemplative practice). Encourages shrine use during
+	// normal play and fills the gap at shrines with no other actions.
 	{
 		ID: "meditate", Label: "Meditate quietly at the shrine (free, solo-friendly)", Category: "wellbeing", BaseGameMinutes: 30,
 		Destination: destNearestOfType("shrine"),
 		Candidates:  candidatesOfType("shrine"),
 		Conditions: func(n *npc.NPC, w *world.World) bool {
-			if n.LastAction == "meditate" {
+			if n.LastAction == "meditate" || n.LastAction == "pray" {
 				return false
 			}
 			return len(w.LocationsByType("shrine")) > 0
@@ -255,6 +232,7 @@ var wellbeingActions = []Action{
 			n.Stress = clamp(n.Stress-12, 0, 100)
 			n.Happiness = clamp(n.Happiness+4, 0, 100)
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue-3, 0, 100)
+			n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-5, 0, 100)
 			// Slowly awaken spiritual aptitude through practice
 			if n.Stats.SpiritualSensitivity < 100 {
 				n.Stats.SpiritualSensitivity = clamp(n.Stats.SpiritualSensitivity+1, 0, 100)
@@ -266,7 +244,7 @@ var wellbeingActions = []Action{
 				Category:   memory.CatRoutine,
 				Tags:       []string{"shrine", "meditate"},
 			})
-			return "Meditated quietly at the shrine (-12 stress, +4 happiness, -3 fatigue, +spiritual insight)."
+			return "Meditated quietly at the shrine (-12 stress, +4 happiness, -3 fatigue, -5 social need, +spiritual insight)."
 		},
 	},
 	// tend_shrine: a solo-friendly shrine action that rewards pro-social
@@ -362,6 +340,53 @@ var wellbeingActions = []Action{
 				})
 			}
 			return fmt.Sprintf("Gazed at the stars in the quiet night (-8 stress, +6 happiness).%s", wisdomText)
+		},
+	},
+	// tell_story: a solo-friendly entertainment action. The NPC recounts
+	// tales, legends, or personal experiences aloud. Available anywhere,
+	// day or night, and doesn't require items or special locations. Builds
+	// a storytelling skill and provides social/happiness recovery for solo
+	// players who can't talk to anyone.
+	{
+		ID: "tell_story", Label: "Tell a story or recount a tale aloud (free, solo entertainment)", Category: "wellbeing", BaseGameMinutes: 20,
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			return n.LastAction != "tell_story" && n.Needs.Fatigue < 80
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			n.Stress = clamp(n.Stress-6, 0, 100)
+			n.Happiness = clamp(n.Happiness+4, 0, 100)
+			n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-6, 0, 100)
+			n.GainSkill("storytelling", 0.3)
+			// Higher storytelling skill makes the tale more engaging
+			skill := n.GetSkillLevel("storytelling")
+			bonusText := ""
+			if skill >= 30 {
+				// Skilled storytellers gain wisdom and extra happiness
+				n.Happiness = clamp(n.Happiness+2, 0, 100)
+				if n.Stats.Wisdom < 100 {
+					n.Stats.Wisdom = clamp(n.Stats.Wisdom+1, 0, 100)
+				}
+				bonusText = " The tale was well-crafted — you felt wiser for it."
+			}
+			// If other NPCs are nearby, they benefit too
+			nearby := w.NPCsAtLocation(n.LocationID, n.ID)
+			listenerText := ""
+			if len(nearby) > 0 {
+				for _, listener := range nearby {
+					listener.Happiness = clamp(listener.Happiness+2, 0, 100)
+					listener.Needs.SocialNeed = clampF(listener.Needs.SocialNeed-3, 0, 100)
+				}
+				listenerText = fmt.Sprintf(" %d listener(s) enjoyed the tale.", len(nearby))
+				n.Needs.SocialNeed = clampF(n.Needs.SocialNeed-4, 0, 100) // bonus for audience
+			}
+			mem.Add(n.ID, memory.Entry{
+				Text:       "I told a story aloud, letting the words fill the silence.",
+				Time:       w.TimeString(),
+				Importance: 0.3,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"story", "solo"},
+			})
+			return fmt.Sprintf("Told a story (-6 stress, +4 happiness, -6 social need, +storytelling xp).%s%s", bonusText, listenerText)
 		},
 	},
 }
