@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"sort"
 
+	"github.com/divinity/core/item"
 	"github.com/divinity/core/knowledge"
 	"github.com/divinity/core/memory"
 	"github.com/divinity/core/npc"
@@ -216,8 +217,15 @@ var gatherActions = []Action{
 			if avail <= 0 {
 				return "The waters are fished out — nothing to catch."
 			}
-			if rand.Float64() < 0.6 {
-				caught := int(math.Min(float64(randInt(1, 3)), float64(avail)))
+			// Base catch chance 60%; fishing rod adds +15%
+			catchChance := 0.6
+			rodBonus := 0
+			if n.Equipment.Weapon != nil && n.Equipment.Weapon.Name == "fishing rod" {
+				catchChance = 0.75
+				rodBonus = 1
+			}
+			if rand.Float64() < catchChance {
+				caught := int(math.Min(float64(randInt(1, 3)+rodBonus), float64(avail)))
 				bonus := knowledge.GetTechniqueBonus(n.ID, "fish_catch", w.Techniques)
 				if bonus > 0 {
 					caught = int(math.Ceil(float64(caught) * (1 + bonus)))
@@ -227,7 +235,11 @@ var gatherActions = []Action{
 				}
 				n.AddItem("fish", caught)
 				n.GainSkill("fisher", 0.3)
-				return fmt.Sprintf("Caught %d fish.", caught)
+				rodText := ""
+				if rodBonus > 0 {
+					rodText = " (fishing rod bonus!)"
+				}
+				return fmt.Sprintf("Caught %d fish.%s", caught, rodText)
 			}
 			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
 			n.GainSkill("fisher", 0.1)
@@ -470,6 +482,45 @@ var gatherActions = []Action{
 			return fmt.Sprintf("Gathered %d clay near the water.", qty)
 		},
 	},
+	// gather_firewood: collect fallen branches and deadwood from forests.
+	// No axe required (unlike chop_wood). Yields less (1 log vs 1-3)
+	// and is slower, but accessible to every NPC. Fills the gap where
+	// logs were unobtainable without an iron axe.
+	{
+		ID: "gather_firewood", Label: "Gather fallen branches and firewood (no axe needed)", Category: "gather", BaseGameMinutes: 40,
+		Destination: destNearestOfType("forest"),
+		Candidates:  candidatesOfType("forest"),
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 70 {
+				return false
+			}
+			for _, f := range w.LocationsByType("forest") {
+				if f.Resources == nil || f.Resources["wood"] > 0 {
+					return true
+				}
+			}
+			return false
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			avail := 99
+			if loc != nil && loc.Resources != nil {
+				avail = loc.Resources["wood"]
+			}
+			if avail <= 0 {
+				return "The forest floor has no fallen branches to collect."
+			}
+			// Always yields exactly 1 log (slower than chop_wood but no tool needed)
+			qty := 1
+			if loc != nil && loc.Resources != nil {
+				loc.Resources["wood"] = max(0, loc.Resources["wood"]-qty)
+			}
+			n.AddItem("logs", qty)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+10, 0, 100)
+			n.GainSkill("woodcutter", 0.1)
+			return "Gathered fallen branches from the forest floor (1 log)."
+		},
+	},
 	{
 		ID: "scavenge", Label: "Pick up items/loot from the ground at your location", Category: "gather",
 		Conditions: func(n *npc.NPC, w *world.World) bool {
@@ -499,7 +550,18 @@ var gatherActions = []Action{
 				// For non-gold items, sort by total value (price * qty).
 				vi := w.GetPrice(sorted[i].Name) * sorted[i].Qty
 				vj := w.GetPrice(sorted[j].Name) * sorted[j].Qty
-				return vi > vj
+				if vi != vj {
+					return vi > vj
+				}
+				// Tie-breaker: prioritize materials, weapons, and
+				// medicine over food so NPCs grab crafting resources
+				// when values are equal (e.g., logs vs bread).
+				ci := item.GetInfo(sorted[i].Name).Category
+				cj := item.GetInfo(sorted[j].Name).Category
+				catPriority := map[string]int{
+					"material": 4, "medicine": 3, "trade_good": 2, "curiosity": 1,
+				}
+				return catPriority[ci] > catPriority[cj]
 			})
 
 			goldPickedUp := 0

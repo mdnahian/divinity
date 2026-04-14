@@ -20,6 +20,7 @@ var Registry = map[string]ItemDef{
 	"berries":     {Weight: 0.1, Stackable: true, DurabilityBase: 30, DecayRate: 5, Category: "food", Effects: map[string]float64{"hunger_restore": 10}},
 	"wheat":       {Weight: 0.3, Stackable: true, DurabilityBase: 80, DecayRate: 1, Category: "food", Effects: map[string]float64{"hunger_restore": 8}},
 	"fish":        {Weight: 0.4, Stackable: true, DurabilityBase: 25, DecayRate: 6, Category: "food", Effects: map[string]float64{"hunger_restore": 12}},
+	"grilled fish": {Weight: 0.3, Stackable: true, DurabilityBase: 50, DecayRate: 3, Category: "food", Effects: map[string]float64{"hunger_restore": 30}},
 
 	// Drink items
 	"ale": {Weight: 0.5, Stackable: true, DurabilityBase: 100, DecayRate: 0, Category: "drink", Effects: map[string]float64{"sobriety": -20, "stress": -10, "happiness": 5, "thirst": 10}},
@@ -51,6 +52,7 @@ var Registry = map[string]ItemDef{
 	"hammer":        {Weight: 2.0, Stackable: false, Slot: "weapon", DurabilityBase: 100, DecayRate: 0.5, Effects: map[string]float64{"weapon_bonus": 8}},
 	"wooden club":   {Weight: 1.5, Stackable: false, Slot: "weapon", DurabilityBase: 60, DecayRate: 1, Effects: map[string]float64{"weapon_bonus": 5}},
 	"walking stick": {Weight: 1.0, Stackable: false, Slot: "weapon", DurabilityBase: 40, DecayRate: 1, Effects: map[string]float64{"weapon_bonus": 2}},
+	"fishing rod":   {Weight: 0.8, Stackable: false, Slot: "weapon", DurabilityBase: 50, DecayRate: 1, Effects: map[string]float64{"weapon_bonus": 1, "fishing_bonus": 1}},
 
 	// Armor
 	"leather armor": {Weight: 4.0, Stackable: false, Slot: "armor", DurabilityBase: 80, DecayRate: 0.5, Effects: map[string]float64{"armor_bonus": 10}},
