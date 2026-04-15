@@ -218,4 +218,69 @@ var survivalActions = []Action{
 			return fmt.Sprintf("Drank %s.", drinkName)
 		},
 	},
+	// camp_rest: rest outdoors using a lean-to shelter. Much better than
+	// rough sleeping (no happiness/HP loss), though not as good as a real
+	// bed. Available to any NPC carrying a shelter, no gold or inn needed.
+	// Fills the critical gap where homeless NPCs were stuck in a death
+	// spiral of rough sleep -> low HP -> can't work -> can't afford inn.
+	{
+		ID: "camp_rest", Label: "Rest in your lean-to shelter (no inn needed)", Category: "survival", BaseGameMinutes: 240,
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			if n.Needs.Fatigue <= 50 {
+				return false
+			}
+			return n.HasItem("lean-to shelter") != nil
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			// Shelter provides decent rest without the penalties of rough sleeping
+			// and without the cost of an inn. Weather affects quality.
+			restore := 30.0
+			stressChange := -3
+			hpRestore := 3
+			weatherNote := ""
+			switch w.Weather {
+			case "rain":
+				restore = 25.0
+				weatherNote = " The rain drummed on your shelter roof."
+			case "storm":
+				restore = 20.0
+				stressChange = 2
+				hpRestore = 1
+				weatherNote = " The storm rattled your shelter all night."
+			case "clear":
+				restore = 35.0
+				stressChange = -5
+				hpRestore = 4
+				weatherNote = " The clear sky made for a peaceful night."
+			}
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue-restore, 0, 100)
+			n.Stress = clamp(n.Stress+stressChange, 0, 100)
+			n.HP = min(100, n.HP+hpRestore)
+			mem.Add(n.ID, memory.Entry{
+				Text:       "Slept in my lean-to shelter. It's no inn, but it kept the wind out.",
+				Time:       w.TimeString(),
+				Importance: 0.3,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"shelter", "sleep", "camp"},
+			})
+			return fmt.Sprintf("Rested in your lean-to shelter (-%.0f fatigue, %+d stress, +%d HP).%s", restore, stressChange, hpRestore, weatherNote)
+		},
+	},
+	// apply_herbs: use herbs from inventory to heal wounds without a healer.
+	// Less effective than a healing potion but uses a common forage item.
+	// Fills the gap where injured solo NPCs had no way to heal without
+	// finding a healer NPC or buying expensive potions.
+	{
+		ID: "apply_herbs", Label: "Apply herbs to your wounds (self-heal)", Category: "survival",
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			return n.HP < 70 && n.HasItem("herbs") != nil
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
+			n.RemoveItem("herbs", 1)
+			restore := randInt(8, 15)
+			n.HP = min(100, n.HP+restore)
+			n.GainSkill("herbalism", 0.2)
+			return fmt.Sprintf("Applied herbs to your wounds (+%d HP). The forest provides.", restore)
+		},
+	},
 }

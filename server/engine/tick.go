@@ -368,7 +368,13 @@ func (e *Engine) runEnemyAttackPhase() {
 			pending := target.PendingActionID
 			combatLocked := pending == "attack_enemy" || pending == "flee_area" || pending == "party_attack"
 			if !combatLocked {
-				target.BusyUntilTick = e.TickCount()
+				// Set BusyUntilTick to 0 (not currentTick) so that
+				// processCompletionsAndInterrupts does NOT try to
+				// execute the cleared empty PendingActionID.
+				// Previously this was set to e.TickCount(), which
+				// caused the completion handler to fire on an empty
+				// action string, producing "unknown action: " errors.
+				target.BusyUntilTick = 0
 				target.PendingActionID = ""
 				target.PendingTargetName = ""
 				target.PendingReason = ""

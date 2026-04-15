@@ -308,6 +308,10 @@ var wellbeingActions = []Action{
 			if !w.IsNight() {
 				return false
 			}
+			// Can't stargaze in rain or storms — clouds block the sky
+			if w.Weather == "rain" || w.Weather == "storm" {
+				return false
+			}
 			loc := w.LocationByID(n.LocationID)
 			if loc == nil {
 				return false

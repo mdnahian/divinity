@@ -76,6 +76,9 @@ var Registry = map[string]ItemDef{
 	"cloth":      {Weight: 0.3, Stackable: true, DurabilityBase: 60, DecayRate: 1, Category: "material"},
 	"rope":       {Weight: 0.4, Stackable: true, DurabilityBase: 70, DecayRate: 0.5, Category: "material"},
 
+	// Shelter / camp items
+	"lean-to shelter": {Weight: 3.0, Stackable: false, DurabilityBase: 40, DecayRate: 2, Category: "material", Effects: map[string]float64{"shelter_quality": 1}},
+
 	// Trade goods
 	"ceramic": {Weight: 0.5, Stackable: true, DurabilityBase: 60, DecayRate: 0, Category: "trade_good"},
 }
