@@ -91,11 +91,14 @@ var gatherActions = []Action{
 			if found <= 0 {
 				return "The forest has no berries left to forage."
 			}
+			// Apply weather effects to gathering yield
+			yieldMult, extraFatigue, weatherDesc := w.WeatherGatherBonus()
+			found = max(1, int(float64(found)*yieldMult))
 			if loc != nil && loc.Resources != nil {
 				loc.Resources["berries"] = max(0, loc.Resources["berries"]-found)
 			}
 			n.AddItem("berries", found)
-			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8+extraFatigue, 0, 100)
 			if rand.Float64() < 0.15 {
 				herbs := 1
 				if loc != nil && loc.Resources != nil {
@@ -106,10 +109,10 @@ var gatherActions = []Action{
 				}
 				if herbs > 0 {
 					n.AddItem("herbs", 1)
-					return fmt.Sprintf("Foraged in the woods and found %d berries and some herbs.", found)
+					return fmt.Sprintf("Foraged in the woods and found %d berries and some herbs.%s", found, weatherDesc)
 				}
 			}
-			return fmt.Sprintf("Foraged in the woods and found %d berries.", found)
+			return fmt.Sprintf("Foraged in the woods and found %d berries.%s", found, weatherDesc)
 		},
 	},
 	{
@@ -129,7 +132,8 @@ var gatherActions = []Action{
 		},
 		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
 			loc := w.LocationByID(n.LocationID)
-			n.Needs.Fatigue = clampF(n.Needs.Fatigue+15, 0, 100)
+			yieldMult, extraFatigue, weatherDesc := w.WeatherGatherBonus()
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+15+extraFatigue, 0, 100)
 			avail := 99
 			if loc != nil && loc.Resources != nil {
 				avail = loc.Resources["game"]
@@ -137,7 +141,8 @@ var gatherActions = []Action{
 			if avail <= 0 {
 				return "No game left in the forest to hunt."
 			}
-			skill := float64(n.Stats.Agility+n.Stats.Strength) / 2
+			// Weather affects hunting success: storms scare game away
+			skill := float64(n.Stats.Agility+n.Stats.Strength) / 2 * yieldMult
 			if rand.Float64()*100 < skill {
 				meat := int(math.Min(float64(randInt(1, 2)), float64(avail)))
 				if loc != nil && loc.Resources != nil {
@@ -147,11 +152,14 @@ var gatherActions = []Action{
 				n.GainSkill("hunter", 0.5)
 				if rand.Float64() < 0.4 {
 					n.AddItem("hide", 1)
-					return fmt.Sprintf("Hunted successfully — %d raw meat and a hide.", meat)
+					return fmt.Sprintf("Hunted successfully — %d raw meat and a hide.%s", meat, weatherDesc)
 				}
-				return fmt.Sprintf("Hunted successfully — %d raw meat.", meat)
+				return fmt.Sprintf("Hunted successfully — %d raw meat.%s", meat, weatherDesc)
 			}
 			n.GainSkill("hunter", 0.1)
+			if weatherDesc != "" {
+				return fmt.Sprintf("Spent hours tracking game but came back empty-handed.%s", weatherDesc)
+			}
 			return "Spent hours tracking game but came back empty-handed (+hunting experience)."
 		},
 	},
@@ -224,6 +232,9 @@ var gatherActions = []Action{
 				catchChance = 0.75
 				rodBonus = 1
 			}
+			// Weather affects fishing: rain helps, storms hurt
+			catchMult, extraFatigue, weatherDesc := w.WeatherFishBonus()
+			catchChance = math.Min(0.95, catchChance*catchMult)
 			if rand.Float64() < catchChance {
 				caught := int(math.Min(float64(randInt(1, 3)+rodBonus), float64(avail)))
 				bonus := knowledge.GetTechniqueBonus(n.ID, "fish_catch", w.Techniques)
@@ -239,10 +250,13 @@ var gatherActions = []Action{
 				if rodBonus > 0 {
 					rodText = " (fishing rod bonus!)"
 				}
-				return fmt.Sprintf("Caught %d fish.%s", caught, rodText)
+				return fmt.Sprintf("Caught %d fish.%s%s", caught, rodText, weatherDesc)
 			}
-			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8+extraFatigue, 0, 100)
 			n.GainSkill("fisher", 0.1)
+			if weatherDesc != "" {
+				return fmt.Sprintf("Sat by the water but caught nothing.%s", weatherDesc)
+			}
 			return "Sat by the water but caught nothing (+fishing experience)."
 		},
 	},
@@ -511,14 +525,20 @@ var gatherActions = []Action{
 				return "The forest floor has no fallen branches to collect."
 			}
 			// Always yields exactly 1 log (slower than chop_wood but no tool needed)
+			// Storms can knock extra branches loose (+1 bonus log)
+			_, extraFatigue, weatherDesc := w.WeatherGatherBonus()
 			qty := 1
+			if w.Weather == "storm" && avail >= 2 {
+				qty = 2 // storms knock branches loose
+				weatherDesc = " The storm knocked extra branches loose!"
+			}
 			if loc != nil && loc.Resources != nil {
 				loc.Resources["wood"] = max(0, loc.Resources["wood"]-qty)
 			}
 			n.AddItem("logs", qty)
-			n.Needs.Fatigue = clampF(n.Needs.Fatigue+10, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+10+extraFatigue, 0, 100)
 			n.GainSkill("woodcutter", 0.1)
-			return "Gathered fallen branches from the forest floor (1 log)."
+			return fmt.Sprintf("Gathered fallen branches from the forest floor (%d log).%s", qty, weatherDesc)
 		},
 	},
 	{

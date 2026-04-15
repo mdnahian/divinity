@@ -385,6 +385,10 @@ var craftActions = []Action{
 			if n.Needs.Fatigue >= 75 {
 				return false
 			}
+			// Can't light a fire in a storm (rain is borderline — allowed but harder)
+			if w.Weather == "storm" {
+				return false
+			}
 			if n.HasItem("logs") == nil {
 				return false
 			}
@@ -508,6 +512,30 @@ var craftActions = []Action{
 				}
 			}
 			return "Had nothing to mend or lacked the right materials."
+		},
+	},
+	// craft_shelter: build a lean-to shelter from 2 logs + 2 thatch.
+	// The shelter is an inventory item that enables "camp_rest" — a solo-
+	// friendly way to sleep outdoors with reduced penalties. No home, inn,
+	// or profession needed. Fills the gap where homeless NPCs had no way
+	// to get decent rest without gold.
+	{
+		ID: "craft_shelter", Label: "Build a lean-to shelter (2 logs + 2 thatch)", Category: "craft", BaseGameMinutes: 45,
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			if n.Needs.Fatigue >= 75 {
+				return false
+			}
+			logs := n.HasItem("logs")
+			thatch := n.HasItem("thatch")
+			return logs != nil && logs.Qty >= 2 && thatch != nil && thatch.Qty >= 2
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
+			n.RemoveItem("logs", 2)
+			n.RemoveItem("thatch", 2)
+			n.AddItem("lean-to shelter", 1)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.GainSkill("carpentry", 0.3)
+			return "Built a lean-to shelter from logs and thatch. You can now camp rest outdoors!"
 		},
 	},
 }

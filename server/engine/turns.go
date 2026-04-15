@@ -188,7 +188,12 @@ func (e *Engine) processCompletionsAndInterrupts() {
 		if len(enemiesHere) > 0 && n.HP < 40 {
 			shouldInterrupt = true
 		}
-		if n.HP < 15 {
+		// Only interrupt at very low HP if enemies are present.
+		// Previously this fired unconditionally, which trapped
+		// safe NPCs in an interrupt loop at low HP — they couldn't
+		// eat, heal, or drink because every action was immediately
+		// cancelled. Now they can act normally when there's no danger.
+		if len(enemiesHere) > 0 && n.HP < 15 {
 			shouldInterrupt = true
 		}
 		if shouldInterrupt {
@@ -336,6 +341,7 @@ func (e *Engine) SubmitExternalAction(n *npc.NPC, actionID, target, dialogue, go
 			// Travel fatigue: walking=3.0, riding=1.0, carriage=0.0 per 10 ticks
 			// Skip travel fatigue for sleep/go_home — the NPC is heading to
 			// bed and shouldn't risk collapse from the journey.
+			// Weather modifies travel fatigue: rain +30%, storm +60%.
 			if travelTicks > 0 && actionID != "sleep" && actionID != "go_home" {
 				fatiguePer10 := 3.0
 				if mounted {
@@ -344,7 +350,7 @@ func (e *Engine) SubmitExternalAction(n *npc.NPC, actionID, target, dialogue, go
 				if inCarriage {
 					fatiguePer10 = 0.0
 				}
-				travelFatigue := fatiguePer10 * float64(travelTicks) / 10.0
+				travelFatigue := fatiguePer10 * float64(travelTicks) / 10.0 * e.World.WeatherTravelFatigueMod()
 				n.Needs.Fatigue = math.Min(100, math.Max(0, n.Needs.Fatigue+travelFatigue))
 			}
 			n.PreviousLocationID = n.LocationID
@@ -386,7 +392,9 @@ func actionMemoryCategory(actionID string) string {
 	case "trade", "buy_food", "buy_ale", "buy_supplies", "serve_customer",
 		"heal_patient", "offer_counsel", "farm", "fish", "hunt",
 		"mine_ore", "mine_stone", "chop_wood", "forage",
-		"gather_thatch", "gather_clay", "scavenge", "start_business":
+		"gather_thatch", "gather_clay", "gather_firewood", "scavenge",
+		"start_business", "craft_shelter", "craft_fishing_rod",
+		"cook_over_fire", "mend_equipment":
 		return memory.CatEconomic
 	case "talk", "gift", "eat_together", "drink_together", "comfort",
 		"flirt", "work_together", "share_journal", "steal":

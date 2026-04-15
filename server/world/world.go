@@ -309,6 +309,63 @@ func (w *World) WeatherDescription() string {
 	return descs[w.Weather]
 }
 
+// WeatherGatherBonus returns a multiplier for outdoor gathering actions.
+// Clear weather is best (+10% bonus), rain penalizes slightly (-15%),
+// storms penalize heavily (-30% yield AND +fatigue), cloudy is neutral.
+func (w *World) WeatherGatherBonus() (yieldMult float64, extraFatigue float64, desc string) {
+	switch w.Weather {
+	case "clear":
+		return 1.10, 0, ""
+	case "rain":
+		return 0.85, 3, " The rain made foraging harder."
+	case "storm":
+		return 0.70, 6, " The storm made this dangerous and exhausting."
+	default: // cloudy
+		return 1.0, 0, ""
+	}
+}
+
+// WeatherFishBonus returns modifiers for fishing.
+// Rain actually helps fishing (+20% catch), storms hurt (-25%).
+func (w *World) WeatherFishBonus() (catchMult float64, extraFatigue float64, desc string) {
+	switch w.Weather {
+	case "rain":
+		return 1.20, 2, " The rain brought the fish to the surface!"
+	case "storm":
+		return 0.75, 5, " Fishing in the storm was treacherous."
+	case "clear":
+		return 1.0, 0, ""
+	default: // cloudy
+		return 1.05, 0, ""
+	}
+}
+
+// WeatherCombatMod returns a modifier for combat damage dealt/taken.
+// Storms make combat harder (less damage dealt, more taken).
+func (w *World) WeatherCombatMod() (attackMod float64, defenseMod float64) {
+	switch w.Weather {
+	case "storm":
+		return 0.85, 1.15 // harder to fight in storms
+	case "rain":
+		return 0.95, 1.05 // slight penalty
+	default:
+		return 1.0, 1.0
+	}
+}
+
+// WeatherTravelFatigueMod returns an extra fatigue multiplier for travel.
+// Rain and storms make travel more tiring.
+func (w *World) WeatherTravelFatigueMod() float64 {
+	switch w.Weather {
+	case "rain":
+		return 1.3
+	case "storm":
+		return 1.6
+	default:
+		return 1.0
+	}
+}
+
 func (w *World) maybeChangeWeather() {
 	totalMinutes := w.GameDay*1440 + w.GameHour*60 + w.GameMinute
 	if totalMinutes-w.LastWeatherChange > 180 && rand.Float64() < 0.15 {
