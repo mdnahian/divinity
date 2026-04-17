@@ -283,4 +283,88 @@ var survivalActions = []Action{
 			return fmt.Sprintf("Applied herbs to your wounds (+%d HP). The forest provides.", restore)
 		},
 	},
+	// bandage_wound: use cloth to bandage wounds without a healer.
+	// Less effective than herbs (5-10 HP vs 8-15) but cloth is more
+	// widely available — sold at markets, dropped by tailors, spawned
+	// with many professions. Fills the gap where an injured NPC has
+	// cloth but no herbs (forests being too dangerous to reach).
+	{
+		ID: "bandage_wound", Label: "Bandage a wound with cloth (self-heal)", Category: "survival",
+		Conditions: func(n *npc.NPC, _ *world.World) bool {
+			return n.HP < 75 && n.HasItem("cloth") != nil
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, _ *world.World, _ memory.Store) string {
+			n.RemoveItem("cloth", 1)
+			restore := randInt(5, 10)
+			n.HP = min(100, n.HP+restore)
+			return fmt.Sprintf("Bandaged your wound with cloth (+%d HP). Not pretty, but it holds.", restore)
+		},
+	},
+	// name_landmark: leave a personal name/mark for a location, creating
+	// a vivid memory tied to that place. Happiness and social boost, no
+	// cost. Anchors solo NPCs to the world by giving them small moments
+	// of ownership over geography — a gentle antidote to wanderlust and
+	// loneliness. Works anywhere outside established buildings.
+	{
+		ID: "name_landmark", Label: "Leave a personal mark, naming a landmark (free)", Category: "wellbeing", BaseGameMinutes: 20,
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.LastAction == "name_landmark" {
+				return false
+			}
+			if n.Needs.Fatigue >= 80 {
+				return false
+			}
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return false
+			}
+			// Natural / outdoor landmarks only (no inns, palaces, castles, shops)
+			switch loc.Type {
+			case "forest", "farm", "dock", "well", "shrine", "cave",
+				"desert", "swamp", "tundra", "garden", "stable":
+				return true
+			}
+			return false
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, mem memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return "Couldn't find the landmark."
+			}
+			// Pick a flavor phrase based on location type.
+			phrase := "I carved my initial into the bark, marking this as mine."
+			switch loc.Type {
+			case "well":
+				phrase = "I etched my mark on a stone at the well's edge."
+			case "dock":
+				phrase = "I scratched my name into the weathered dock post."
+			case "cave":
+				phrase = "I scratched my mark into the cave wall with a sharp stone."
+			case "shrine":
+				phrase = "I left a small pile of stones as my quiet offering at the shrine."
+			case "farm":
+				phrase = "I pressed my mark into the mud of the field edge."
+			case "desert", "tundra":
+				phrase = "I built a small cairn of stones to mark my passage."
+			case "swamp":
+				phrase = "I tied a knot of reeds to the branch overhead."
+			case "garden":
+				phrase = "I pressed a handprint into the garden soil."
+			case "stable":
+				phrase = "I scratched my mark into the stable's worn beam."
+			}
+			n.Happiness = clamp(n.Happiness+5, 0, 100)
+			n.Stress = clamp(n.Stress-3, 0, 100)
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+2, 0, 100)
+			mem.Add(n.ID, memory.Entry{
+				Text:       fmt.Sprintf("At %s: %s", loc.Name, phrase),
+				Time:       w.TimeString(),
+				Importance: 0.55,
+				Vividness:  0.8,
+				Category:   memory.CatRoutine,
+				Tags:       []string{"landmark", "memory", loc.Type},
+			})
+			return fmt.Sprintf("Named %s with a personal mark (+5 happiness, -3 stress). %s", loc.Name, phrase)
+		},
+	},
 }

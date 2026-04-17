@@ -541,6 +541,94 @@ var gatherActions = []Action{
 			return fmt.Sprintf("Gathered fallen branches from the forest floor (%d log).%s", qty, weatherDesc)
 		},
 	},
+	// salvage_wood: collect scrap lumber from docks, mills, forges, or
+	// workshops. Yields 1 log per action. Much safer than forest
+	// gathering but slower and less reliable (30% chance of nothing).
+	// Fills the critical gap where solo NPCs couldn't safely get logs
+	// to craft shelters or other wood goods — forests are overrun with
+	// wolves and dire wolves that repeatedly interrupt long gather
+	// actions, making shelter crafting effectively impossible.
+	{
+		ID: "salvage_wood", Label: "Salvage wood scraps from dock, mill, forge, or workshop", Category: "gather", BaseGameMinutes: 30,
+		Destination: func(n *npc.NPC, w *world.World) string {
+			// Prefer dock (most wood from shipping), then mill, then
+			// forge, then workshop. Pick nearest of each type.
+			var best *world.Location
+			bestDist := math.MaxFloat64
+			cur := w.LocationByID(n.LocationID)
+			if cur == nil {
+				return ""
+			}
+			cx, cy := float64(cur.X+cur.W/2), float64(cur.Y+cur.H/2)
+			for _, t := range []string{"dock", "mill", "forge", "workshop"} {
+				for _, l := range w.LocationsByType(t) {
+					dx := float64(l.X+l.W/2) - cx
+					dy := float64(l.Y+l.H/2) - cy
+					d := dx*dx + dy*dy
+					if d < bestDist {
+						bestDist = d
+						best = l
+					}
+				}
+			}
+			if best == nil {
+				return ""
+			}
+			return best.ID
+		},
+		Candidates: func(_ *npc.NPC, w *world.World) []*world.Location {
+			var locs []*world.Location
+			for _, t := range []string{"dock", "mill", "forge", "workshop"} {
+				locs = append(locs, w.LocationsByType(t)...)
+			}
+			return locs
+		},
+		Conditions: func(n *npc.NPC, w *world.World) bool {
+			if n.Needs.Fatigue >= 75 {
+				return false
+			}
+			// At least one dock/mill/forge/workshop must exist in world.
+			for _, t := range []string{"dock", "mill", "forge", "workshop"} {
+				if len(w.LocationsByType(t)) > 0 {
+					return true
+				}
+			}
+			return false
+		},
+		Execute: func(n *npc.NPC, _ *npc.NPC, w *world.World, _ memory.Store) string {
+			loc := w.LocationByID(n.LocationID)
+			if loc == nil {
+				return "Couldn't find a workshop to salvage from."
+			}
+			// Success chance varies by location type — docks have the
+			// most discarded wood, workshops the least.
+			var chance float64
+			var sourceDesc string
+			switch loc.Type {
+			case "dock":
+				chance = 0.80
+				sourceDesc = "ship timber offcuts"
+			case "mill":
+				chance = 0.75
+				sourceDesc = "sawmill scraps"
+			case "forge":
+				chance = 0.60
+				sourceDesc = "kindling and pallets"
+			case "workshop":
+				chance = 0.55
+				sourceDesc = "workshop offcuts"
+			default:
+				return "Can only salvage wood at docks, mills, forges, or workshops."
+			}
+			n.Needs.Fatigue = clampF(n.Needs.Fatigue+8, 0, 100)
+			n.GainSkill("woodcutter", 0.1)
+			if rand.Float64() < chance {
+				n.AddItem("logs", 1)
+				return fmt.Sprintf("Salvaged 1 log from %s.", sourceDesc)
+			}
+			return fmt.Sprintf("Searched through %s but nothing usable today.", sourceDesc)
+		},
+	},
 	{
 		ID: "scavenge", Label: "Pick up items/loot from the ground at your location", Category: "gather",
 		Conditions: func(n *npc.NPC, w *world.World) bool {

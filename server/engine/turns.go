@@ -68,10 +68,17 @@ func (e *Engine) processCompletionsAndInterrupts() {
 			if n.LastDialogue != "" {
 				memText = fmt.Sprintf("%s Said: \"%s\"", result, n.LastDialogue)
 			}
+			// Importance tuned per category so that routine memories
+			// survive alongside high-importance combat memories in the
+			// bounded memory cap. Previously all action memories had
+			// importance 0.1 and were evicted as soon as an enemy
+			// attacked, leaving NPCs with pure combat PTSD and no
+			// recollection of eating, trading, sleeping, etc.
+			imp := actionMemoryImportance(completedID)
 			e.Memory.AddWithCap(n.ID, memory.Entry{
 				Text:       memText,
 				Time:       w.TimeString(),
-				Importance: 0.1,
+				Importance: imp,
 				Category:   actionMemoryCategory(completedID),
 			}, memory.EffectiveCap(n.Stats.MemoryCapacity))
 
@@ -392,8 +399,8 @@ func actionMemoryCategory(actionID string) string {
 	case "trade", "buy_food", "buy_ale", "buy_supplies", "serve_customer",
 		"heal_patient", "offer_counsel", "farm", "fish", "hunt",
 		"mine_ore", "mine_stone", "chop_wood", "forage",
-		"gather_thatch", "gather_clay", "gather_firewood", "scavenge",
-		"start_business", "craft_shelter", "craft_fishing_rod",
+		"gather_thatch", "gather_clay", "gather_firewood", "salvage_wood",
+		"scavenge", "start_business", "craft_shelter", "craft_fishing_rod",
 		"cook_over_fire", "mend_equipment":
 		return memory.CatEconomic
 	case "talk", "gift", "eat_together", "drink_together", "comfort",
@@ -408,6 +415,44 @@ func actionMemoryCategory(actionID string) string {
 		return memory.CatEducation
 	default:
 		return memory.CatRoutine
+	}
+}
+
+// actionMemoryImportance returns how important a given action's memory is.
+// Higher-importance memories survive longer in the bounded memory store
+// (they're less likely to be evicted when newer memories are added).
+// Combat memories produced by enemy attacks use 0.9, so routine action
+// memories tuned to ~0.3 will stick around alongside a few combat entries
+// rather than being completely crowded out.
+func actionMemoryImportance(actionID string) float64 {
+	switch actionID {
+	// Rare, meaningful life events — these should always be remembered.
+	case "sleep", "craft_shelter", "craft_fishing_rod", "start_business",
+		"hire_employee", "fire_employee", "quit_job", "seek_employment",
+		"recruit_to_faction", "leave_faction", "name_landmark":
+		return 0.5
+	// Combat actions by the NPC themselves (not attacks against them).
+	case "attack_enemy", "flee_area", "party_attack", "fight":
+		return 0.6
+	// Economic and social actions worth recalling.
+	case "trade", "buy_food", "buy_ale", "buy_supplies", "serve_customer",
+		"heal_patient", "apply_herbs", "bandage_wound", "camp_rest",
+		"cook_over_fire", "mend_equipment", "tell_story", "talk", "gift",
+		"comfort", "flirt", "eat_together", "drink_together",
+		"work_together", "share_journal", "teach", "teach_literacy",
+		"teach_technique", "read_book", "copy_text":
+		return 0.35
+	// Routine survival and gather — important enough to remember
+	// a handful even when combat is dominating the log.
+	case "eat", "drink", "drink_ale", "bathe", "forage", "hunt",
+		"fish", "farm", "chop_wood", "mine_ore", "mine_stone",
+		"gather_thatch", "gather_clay", "gather_firewood", "scavenge",
+		"salvage_wood", "meditate", "pray", "reflect", "stargaze",
+		"tend_shrine", "whittle":
+		return 0.25
+	default:
+		// Movement and miscellaneous: low importance, filler memories.
+		return 0.15
 	}
 }
 
